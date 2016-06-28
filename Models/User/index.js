@@ -5,12 +5,13 @@ const knex = require('trendclear-database').knex;
 const RedisCli = require('vn-api-client').Redis;
 const ImageCli = require('vn-api-client').Image;
 
+const jwtConf = require('vn-config').api.jwt;
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 const shortId = require('shortid');
-const jsonwebtoken = require('jsonwebtoken');
-const jwtConf = require("../../config/jwt.js");
 const Promise = require('bluebird');
+const jsonwebtoken = require('jsonwebtoken');
+
 const htmlTemplate = require('./template/email');
 
 const Trendbox = require('../Trendbox');

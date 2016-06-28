@@ -23,7 +23,8 @@
     "socket.io": "^1.4.6",
     "superagent": "^2.0.0",
     "trendclear-database": "github:bsdo64/trendclear-database",
-    "vn-api-client": "github:bsdo64/vn-api-client"
+    "vn-api-client": "github:bsdo64/vn-api-client",
+    "vn-config": "github:bsdo64/vn-config"
   },
   "devDependencies": {
     "morgan": "^1.7.0"
