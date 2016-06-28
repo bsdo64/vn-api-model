@@ -2,16 +2,16 @@
 const M = require('trendclear-database').Models;
 const knex = require('trendclear-database').knex;
 
+const RedisCli = require('vn-api-client').Redis;
+const ImageCli = require('vn-api-client').Image;
+
 const nodemailer = require('nodemailer');
-const redisClient = require('../../Util/RedisClient');
 const bcrypt = require('bcrypt');
 const shortId = require('shortid');
 const jsonwebtoken = require('jsonwebtoken');
 const jwtConf = require("../../config/jwt.js");
 const Promise = require('bluebird');
 const htmlTemplate = require('./template/email');
-
-const ImageApi = require('../../Util/ImageClient');
 
 const Trendbox = require('../Trendbox');
 
@@ -42,7 +42,7 @@ function hashPassword(userPassword, salt = 10) {
 class User {
   checkUserAuth(sessionId, token) {
     return new Promise((resolve, reject) => {
-      redisClient.get('sess:' + sessionId, function (err, result) {
+      RedisCli.get('sess:' + sessionId, function (err, result) {
         var resultJS = JSON.parse(result);
 
         if (err) {
@@ -132,14 +132,14 @@ class User {
   }
   requestEmailVerifyCode(email, sessionId) {
     var code = Math.floor(Math.random() * 900000) + 100000;
-    return redisClient.get('sess:' + sessionId)
+    return RedisCli.get('sess:' + sessionId)
       .then(function (result) {
         var resultJS = JSON.parse(result);
         resultJS.verifyCode = code;
         return JSON.stringify(resultJS);
       })
       .then(function (result) {
-        return redisClient.set('sess:' + sessionId, result);
+        return RedisCli.set('sess:' + sessionId, result);
       })
       .then(function () {
         var transporter = nodemailer.createTransport('smtps://bsdo64%40gmail.com:dkbs13579@smtp.gmail.com');
@@ -167,7 +167,7 @@ class User {
       });
   }
   checkVerifyCode(code, sessionId) {
-    return redisClient
+    return RedisCli
       .get('sess:' + sessionId)
       .then(function (result) {
         var resultJS = JSON.parse(result);
@@ -346,7 +346,7 @@ class User {
   }
 
   logout(user, sessionId) {
-    return redisClient.get('sess:' + sessionId)
+    return RedisCli.get('sess:' + sessionId)
       .then(function (result) {
         var resultJS = JSON.parse(result);
         delete resultJS.token;
@@ -354,12 +354,12 @@ class User {
         return JSON.stringify(resultJS);
       })
       .then(function (result) {
-        return redisClient.set('sess:' + sessionId, result);
+        return RedisCli.set('sess:' + sessionId, result);
       });
   };
 
   checkUserByToken(token, sessionId) {
-    return redisClient
+    return RedisCli
       .get('sess:' + sessionId)
       .then(function (result) {
         var resultJS = JSON.parse(result);
@@ -398,7 +398,7 @@ class User {
         avatar_img: imgObj.file.name
       })
       .then(function (numberOfAffectedRows) {
-        return ImageApi
+        return ImageCli
           .del('/uploaded/files/', {file: 'http://localhost:3000/image/uploaded/files/'+oldAvatarImg})
           .then((result) => {
             return numberOfAffectedRows;
@@ -504,7 +504,7 @@ class User {
   static setTokenWithRedisSession(user, sessionId) {
     return new Promise((resolve, reject) => {
       jsonwebtoken.sign(user, jwtConf.secret, jwtConf.option, (err, token) => {
-        return redisClient
+        return RedisCli
           .get('sess:' + sessionId)
           .then(function (result) {
             var resultJS = JSON.parse(result);
@@ -512,7 +512,7 @@ class User {
             return JSON.stringify(resultJS);
           })
           .then(function (result) {
-            return redisClient.set('sess:' + sessionId, result);
+            return RedisCli.set('sess:' + sessionId, result);
           })
           .then(function (result) {
             resolve(token);

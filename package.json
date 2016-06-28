@@ -22,11 +22,11 @@
     "shortid": "^2.2.6",
     "socket.io": "^1.4.6",
     "superagent": "^2.0.0",
-    "trendclear-database": "0.0.29"
+    "trendclear-database": "github:bsdo64/trendclear-database",
+    "vn-api-client": "github:bsdo64/vn-api-client"
   },
   "devDependencies": {
-    "morgan": "^1.7.0",
-    "v8-profiler": "^5.6.5"
+    "morgan": "^1.7.0"
   },
   "scripts": {
     "start": "nodemon bin/www.js",

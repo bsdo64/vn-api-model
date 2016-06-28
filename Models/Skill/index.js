@@ -3,14 +3,6 @@
  */
 'use strict';
 const Db = require('trendclear-database').Models;
-const nodemailer = require('nodemailer');
-const redisClient = require('../../Util/RedisClient');
-const bcrypt = require('bcrypt');
-const shortId = require('shortid');
-const jsonwebtoken = require('jsonwebtoken');
-const jwtConf = require("../../config/jwt.js");
-const Promise = require('bluebird');
-const _ = require('lodash');
 
 class Skill {
   static nextLevelUpFomula(N) {
