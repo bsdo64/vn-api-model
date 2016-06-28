@@ -13,7 +13,7 @@ let newFiles = files
     return path.parse(file).name
   });
 
-newFiles.forEach(function (element, index, array) {
+['Club', 'Comment', 'Forum', 'Post', 'Search', 'Skill', 'Trendbox', 'User'].forEach(function (element, index, array) {
   models[element] = require(path.resolve(__dirname, element));
 });
 
