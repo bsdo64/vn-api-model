@@ -10,7 +10,6 @@
     "cookie": "^0.3.1",
     "cookie-parser": "^1.4.1",
     "deep-assign": "^2.0.0",
-    "express": "^4.13.4",
     "ioredis": "^1.15.1",
     "joi": "^8.0.5",
     "jsonwebtoken": "^7.0.0",

@@ -2,6 +2,8 @@
  * Created by dobyeongsu on 2016. 6. 28..
  */
 
+module.exports.Db = require('trendclear-database');
+
 module.exports.Club = require('./Models/Club');
 module.exports.Comment = require('./Models/Comment');
 module.exports.Forum = require('./Models/Forum');
