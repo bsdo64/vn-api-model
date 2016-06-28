@@ -88,7 +88,10 @@ class User {
 
                 resolve(user);
 
-              });
+              })
+              .catch(err => {
+                resolve(null);
+              })
           });
         } else {
           resolve(null);
