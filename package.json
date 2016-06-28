@@ -1,0 +1,37 @@
+{
+  "name": "trendclear-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "bcrypt": "^0.8.5",
+    "bluebird": "^3.3.5",
+    "body-parser": "^1.15.0",
+    "cookie": "^0.3.1",
+    "cookie-parser": "^1.4.1",
+    "deep-assign": "^2.0.0",
+    "express": "^4.13.4",
+    "ioredis": "^1.15.1",
+    "joi": "^8.0.5",
+    "jsonwebtoken": "^7.0.0",
+    "lodash": "^4.11.1",
+    "lodash-deep": "^2.0.0",
+    "moment": "^2.12.0",
+    "nodemailer": "^2.3.2",
+    "query-parser": "0.0.1",
+    "shortid": "^2.2.6",
+    "socket.io": "^1.4.6",
+    "superagent": "^2.0.0",
+    "trendclear-database": "0.0.29"
+  },
+  "devDependencies": {
+    "morgan": "^1.7.0",
+    "v8-profiler": "^5.6.5"
+  },
+  "scripts": {
+    "start": "nodemon bin/www.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
