@@ -156,6 +156,7 @@ class Post {
           .tc_posts
           .query()
           .whereIn('id', likePostsIds)
+          .orderBy('created_at', 'DESC')
           .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.category.category_group.club, tags]')
           .then((posts) => {
 
