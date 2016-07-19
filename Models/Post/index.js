@@ -309,7 +309,7 @@ class Post {
     return Db
       .tc_posts
       .query()
-      .where('author', user.id)
+      .where('author_id', user.id)
       .page(page, 10)
       .orderBy('created_at', 'DESC')
       .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.category.category_group.club, tags]')
