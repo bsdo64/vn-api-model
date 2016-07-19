@@ -316,8 +316,6 @@ class Post {
       .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.category.category_group.club, tags]')
       .then((posts) => {
 
-        console.log(posts.length);
-
         if (user) {
           return Db
             .tc_posts
@@ -328,7 +326,7 @@ class Post {
             .andWhere('tc_likes.liker_id', user.id)
             .then(function (likeTable) {
 
-              _.map(posts, function (value) {
+              _.map(posts.results, function (value) {
                 value.liked = !!_.find(likeTable, {'postId': value.id});
               });
 
