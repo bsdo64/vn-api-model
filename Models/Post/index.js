@@ -337,6 +337,51 @@ class Post {
         }
       })
   }
+
+  myWriteCommentPostList(page = 0, user) {
+    const knex = Db.tc_posts.knex();
+
+    `select tc_posts.id from tc_posts inner join tc_comments on tc_posts.id=tc_comments.post_id where tc_comments.author_id=(2) group by tc_posts.id`
+
+    return Db
+      .tc_posts
+      .query()
+      .select('tc_posts.id')
+      .join('tc_comments', 'tc_posts.id', 'tc_comments.post_id')
+      .where('tc_comments.author_id', user.id)
+      .groupBy('tc_posts.id')
+      .then(postsId => {
+        return Db
+          .tc_posts
+          .query()
+          .whereIn('id', postsId)
+          .page(page, 10)
+          .orderBy('created_at', 'DESC')
+          .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.category.category_group.club, tags]')
+          .then((posts) => {
+
+            if (user) {
+              return Db
+                .tc_posts
+                .query()
+                .select('tc_posts.id as postId', 'tc_likes.liker_id')
+                .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+                .andWhere('tc_likes.type', 'post')
+                .andWhere('tc_likes.liker_id', user.id)
+                .then(function (likeTable) {
+
+                  _.map(posts.results, function (value) {
+                    value.liked = !!_.find(likeTable, {'postId': value.id});
+                  });
+
+                  return posts
+                })
+            } else {
+              return posts;
+            }
+          })
+      })
+  }
 }
 
 module.exports = new Post();
