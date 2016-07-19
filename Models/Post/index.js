@@ -303,6 +303,41 @@ class Post {
         }
       })
   }
+
+  myWritePostList(page = 0, user) {
+
+    return Db
+      .tc_posts
+      .query()
+      .where('author', user.id)
+      .page(page, 10)
+      .orderBy('created_at', 'DESC')
+      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.category.category_group.club, tags]')
+      .then((posts) => {
+
+        console.log(posts.length);
+
+        if (user) {
+          return Db
+            .tc_posts
+            .query()
+            .select('tc_posts.id as postId', 'tc_likes.liker_id')
+            .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+            .andWhere('tc_likes.type', 'post')
+            .andWhere('tc_likes.liker_id', user.id)
+            .then(function (likeTable) {
+
+              _.map(posts, function (value) {
+                value.liked = !!_.find(likeTable, {'postId': value.id});
+              });
+
+              return posts
+            })
+        } else {
+          return posts;
+        }
+      })
+  }
 }
 
 module.exports = new Post();
