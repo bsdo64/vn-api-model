@@ -305,7 +305,7 @@ class Post {
   }
 
   myWritePostList(page = 0, user) {
-    const knex = Db.knex();
+    const knex = Db.tc_posts.knex();
 
     return Db
       .tc_posts
