@@ -352,12 +352,12 @@ class Post {
       .groupBy('tc_posts.id')
       .then(postsId => {
 
-        _.map(postsId, 'id');
+        const mappedArray = _.map(postsId, 'id');
 
         return Db
           .tc_posts
           .query()
-          .whereIn('id', postsId)
+          .whereIn('id', mappedArray)
           .page(page, 10)
           .orderBy('created_at', 'DESC')
           .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.category.category_group.club, tags]')
