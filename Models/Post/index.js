@@ -351,6 +351,9 @@ class Post {
       .where('tc_comments.author_id', user.id)
       .groupBy('tc_posts.id')
       .then(postsId => {
+
+        _.map(postsId, 'id');
+
         return Db
           .tc_posts
           .query()
