@@ -54,7 +54,11 @@ class User {
         }
 
         if (resultJS.token && !token) {
-          reject(new Error('Client dont has Token but redis has'));
+          delete resultJS.token;
+
+          RedisCli
+            .set('sess:' + sessionId, JSON.stringify(resultJS))
+            .then(() => resolve(null));
         }
 
         function tokenVerify(token, redisToken) {
