@@ -46,6 +46,18 @@ class Post {
       })
   }
 
+  updatePost (post, user) {
+    return Db
+      .tc_posts
+      .query()
+      .patchAndFetchById(post.postId, {title: post.title, content: post.content})
+      .then((post) => {
+        return post
+          .$query()
+          .eager('forum.category.category_group.club')
+      })
+  }
+
   findOneById (postId, commentPage = 0, user) {
     const knex = Db.tc_comments.knex();
     const limit = 10;
