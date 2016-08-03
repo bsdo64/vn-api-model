@@ -1,5 +1,6 @@
 'use strict';
 const Db = require('trendclear-database').Models;
+const connectionType = require('trendclear-database').connectionConfig;
 const Promise = require('bluebird');
 const _ = require('lodash');
 
@@ -202,12 +203,17 @@ class Post {
   bestPostList (page = 0, user, categoryValue) {
     const knex = Db.tc_posts.knex();
 
+    let hotQuery;
+    if (connectionType === 'mysql') {
+      hotQuery = 'ROUND(LOG(GREATEST(like_count, 1)) + (UNIX_TIMESTAMP(created_at) - UNIX_TIMESTAMP())/45000, 7) as hot';
+    } else if (connectionType === 'postgresql') {
+      hotQuery = 'ROUND(LOG(GREATEST(like_count, 1)) + extract(EPOCH FROM age(created_at, now()))/45000, 7) as hot';
+    }
+    
     const query = Db
       .tc_posts
       .query()
-      .select('*', knex.raw(
-        'ROUND(LOG(GREATEST(like_count, 1)) + (UNIX_TIMESTAMP(created_at) - UNIX_TIMESTAMP())/45000, 7) as hot'
-      ))
+      .select('*', knex.raw(hotQuery))
       .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.category.category_group.club, tags]');
 
     if (categoryValue) {
