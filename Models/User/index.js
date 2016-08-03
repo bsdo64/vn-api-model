@@ -249,12 +249,11 @@ class User {
                 grade_id: grade.id
               })
               .then(() => {
-                return newUser
-                  .$relatedQuery('skills')
-                  .insert([
-                    {level: 1, skill_id: skills[0].id},
-                    {level: 1, skill_id: skills[1].id},
-                    {level: 1, skill_id: skills[2].id},
+                return knex
+                  .batchInsert('tc_user_skills', [
+                    {level: 1, skill_id: skills[0].id, user_id: newUser.id},
+                    {level: 1, skill_id: skills[1].id, user_id: newUser.id},
+                    {level: 1, skill_id: skills[2].id, user_id: newUser.id},
                   ])
               })
               .then(function () {

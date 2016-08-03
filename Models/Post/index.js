@@ -205,7 +205,7 @@ class Post {
     const query = Db
       .tc_posts
       .query()
-      .select('*', knex.raw('LOG(GREATEST(like_count, 1)) + extract(EPOCH FROM age(created_at, now()))/45000 as hot'))
+      .select('*', knex.raw('LOG(GREATEST(like_count, 1)) + (UNIX_TIMESTAMP(created_at) - UNIX_TIMESTAMP())/45000, 7) as hot'))
       .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.category.category_group.club, tags]');
 
     if (categoryValue) {
