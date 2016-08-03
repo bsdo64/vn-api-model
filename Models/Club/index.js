@@ -18,9 +18,9 @@ class Club {
       .tc_club_categories
       .query()
       .select(
-        knex.raw(`"tc_club_categories"."id" as "category_id"`),
-        knex.raw(`"tc_club_category_groups"."id" as "category_group_id"`),
-        knex.raw(`"tc_clubs"."id" as "club_id"`)
+        knex.raw(`tc_club_categories.id as category_id`),
+        knex.raw(`tc_club_category_groups.id as category_group_id`),
+        knex.raw(`tc_clubs.id as club_id`)
       )
       .join('tc_club_category_groups', 'tc_club_categories.club_category_group_id', '=', 'tc_club_category_groups.id')
       .join('tc_clubs', 'tc_club_category_groups.club_id', '=', 'tc_clubs.id')
