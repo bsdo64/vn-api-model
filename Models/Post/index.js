@@ -207,7 +207,7 @@ class Post {
     if (connectionType === 'mysql') {
       hotQuery = 'ROUND(LOG(GREATEST(like_count, 1)) + (UNIX_TIMESTAMP(created_at) - UNIX_TIMESTAMP())/45000, 7) as hot';
     } else if (connectionType === 'postgresql') {
-      hotQuery = 'ROUND(LOG(GREATEST(like_count, 1)) + extract(EPOCH FROM age(created_at, now()))/45000, 7) as hot';
+      hotQuery = 'LOG(GREATEST(like_count, 1)) + extract(EPOCH FROM age(created_at, now()))/45000 as hot';
     }
     
     const query = Db
