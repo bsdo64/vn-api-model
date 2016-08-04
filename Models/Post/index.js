@@ -204,9 +204,9 @@ class Post {
     const knex = Db.tc_posts.knex();
 
     let hotQuery;
-    if (connectionType === 'mysql') {
+    if (connectionType.client === 'mysql') {
       hotQuery = 'ROUND(LOG(GREATEST(like_count, 1)) + (UNIX_TIMESTAMP(created_at) - UNIX_TIMESTAMP())/45000, 7) as hot';
-    } else if (connectionType === 'postgresql') {
+    } else if (connectionType.client === 'postgresql') {
       hotQuery = 'LOG(GREATEST(like_count, 1)) + extract(EPOCH FROM age(created_at, now()))/45000 as hot';
     }
     
