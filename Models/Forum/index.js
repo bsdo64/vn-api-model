@@ -57,7 +57,7 @@ class Forum {
     }
 
     return query
-      .eager('[prefix, author.[icon,profile], forum.category.category_group.club]')
+      .eager('[prefix, author.[icon,profile], forum]')
       .orderBy('created_at', 'DESC')
       .page(page, 10)
 

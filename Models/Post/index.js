@@ -12,7 +12,6 @@ class Post {
     return Db
       .tc_forums
       .query()
-      .eager('[category.category_group.club]')
       .where('id', query.forumId)
       .first()
       .then(forum => {
@@ -25,9 +24,6 @@ class Post {
             content   : post.content,
             author_id : user.id,
             created_at: new Date(),
-            club_id  : forum.category.category_group.club.id,
-            category_group_id  : forum.category.category_group.id,
-            category_id  : forum.category.id,
             forum_id  : forum.id,
             prefix_id : post.prefixId
           })
@@ -42,7 +38,7 @@ class Post {
           .then((post) => {
             return post
               .$query()
-              .eager('forum.category.category_group.club')
+              .eager('forum')
           })
       })
   }
@@ -55,7 +51,7 @@ class Post {
       .then((post) => {
         return post
           .$query()
-          .eager('forum.category.category_group.club')
+          .eager('forum')
       })
   }
 
@@ -67,7 +63,7 @@ class Post {
     return Db
       .tc_posts
       .query()
-      .eager('[likes, prefix, author.[icon.iconDef, profile, trendbox], forum.category.category_group.club, tags]')
+      .eager('[likes, prefix, author.[icon.iconDef, profile, trendbox], forum, tags]')
       .where('id', '=' ,postId)
       .first()
       .then(post => {
@@ -170,7 +166,7 @@ class Post {
           .query()
           .whereIn('id', likePostsIds)
           .orderBy('created_at', 'DESC')
-          .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.category.category_group.club, tags]')
+          .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
           .then((posts) => {
 
             console.log(posts.length);
@@ -209,18 +205,18 @@ class Post {
     } else if (connectionType.client === 'postgresql') {
       hotQuery = 'LOG(GREATEST(like_count, 1)) + extract(EPOCH FROM age(created_at, now()))/45000 as hot';
     }
-    
+
     const query = Db
       .tc_posts
       .query()
       .select('*', knex.raw(hotQuery))
-      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.category.category_group.club, tags]');
+      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]');
 
     if (categoryValue) {
-      query
-        .select('*', 'tc_posts.title as title', 'cat.id as catId', 'tc_posts.id as id')
-        .join('tc_club_categories as cat', 'tc_posts.category_id', 'cat.id')
-        .whereIn('cat.id', categoryValue).debug()
+      // query
+      //   .select('*', 'tc_posts.title as title', 'cat.id as catId', 'tc_posts.id as id')
+      //   .join('tc_club_categories as cat', 'tc_posts.category_id', 'cat.id')
+      //   .whereIn('cat.id', categoryValue).debug()
     }
 
     return query
@@ -333,7 +329,7 @@ class Post {
       .where('author_id', user.id)
       .page(page, 10)
       .orderBy('created_at', 'DESC')
-      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.category.category_group.club, tags]')
+      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
       .then((posts) => {
 
         if (user) {
@@ -380,7 +376,7 @@ class Post {
           .whereIn('id', mappedArray)
           .page(page, 10)
           .orderBy('created_at', 'DESC')
-          .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.category.category_group.club, tags]')
+          .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
           .then((posts) => {
 
             if (user) {
