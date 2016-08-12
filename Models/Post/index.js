@@ -210,13 +210,13 @@ class Post {
       .tc_posts
       .query()
       .select('*', knex.raw(hotQuery))
-      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]');
+      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.creator, tags]');
 
     if (categoryValue) {
-      // query
-      //   .select('*', 'tc_posts.title as title', 'cat.id as catId', 'tc_posts.id as id')
-      //   .join('tc_club_categories as cat', 'tc_posts.category_id', 'cat.id')
-      //   .whereIn('cat.id', categoryValue).debug()
+      query
+        .select('*', 'tc_posts.title as title', 'forum.id as forumId', 'tc_posts.id as id')
+        .join('tc_forums as forum', 'tc_posts.forum_id', 'forum.id')
+        .whereIn('forum.id', categoryValue)
     }
 
     return query
