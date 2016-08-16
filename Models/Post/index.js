@@ -210,7 +210,7 @@ class Post {
       .tc_posts
       .query()
       .select('*', knex.raw(hotQuery))
-      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.creator, tags]');
+      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]');
 
     if (categoryValue) {
       query
