@@ -51,9 +51,6 @@ class Trendbox {
             next_exp: Math.round(Trendbox.nextLevelUpFomula(nextLevel + 1)),
           })
       })
-      .then(result => {
-        console.log(result);
-      })
       .catch(err => {
         console.log(err);
       })
@@ -72,7 +69,6 @@ class Trendbox {
             .where('post_id', post.id)
             .whereNot({author_id: author.id})
             .then(comments => {
-              console.log(comments.length);
               if ((user.id !== author.id) &&
                   (comments.length !== 0) &&
                   (comments.length % point === 0)) {

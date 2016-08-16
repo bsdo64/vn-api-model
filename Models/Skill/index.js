@@ -24,9 +24,6 @@ class Skill {
               using_at: new Date()
             })
         )
-        .then(skills => 
-          console.log(skills)
-        )
   }
 
   incrementPointR() {
