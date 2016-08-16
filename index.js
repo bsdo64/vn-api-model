@@ -5,6 +5,7 @@
 module.exports.Db = require('trendclear-database');
 
 module.exports.Club = require('./Models/Club');
+module.exports.Collection = require('./Models/Collection');
 module.exports.Comment = require('./Models/Comment');
 module.exports.Forum = require('./Models/Forum');
 module.exports.Post = require('./Models/Post');
