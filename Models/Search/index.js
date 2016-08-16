@@ -10,7 +10,6 @@ class Search {
     const limit = 10;
 
     const array = query.split(' ');
-    console.log(array);
 
     let q = Db
       .tc_posts
@@ -22,7 +21,7 @@ class Search {
     }
 
     return q
-      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.category.category_group.club, tags]')
+      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
       .orderBy('created_at', 'DESC')
       .page(page, limit)
       .then((posts) => {

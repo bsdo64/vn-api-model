@@ -1,5 +1,6 @@
 'use strict';
 const Db = require('trendclear-database').Models;
+const Post = require('../Post');
 
 class Collection {
   getUserCollections(user) {
@@ -43,6 +44,18 @@ class Collection {
           .tc_forums
           .query()
           .whereIn('id', collectionForumIds)
+      })
+  }
+
+  getCollectionPosts(collectionId, page, user) {
+    return Db
+      .tc_collection_forums
+      .query()
+      .where('collection_id', collectionId)
+      .then(collectionForums => {
+        const collectionForumIds = collectionForums.map(value => value.forum_id);
+
+        return Post.bestPostList(page, user, collectionForumIds)
       })
   }
 

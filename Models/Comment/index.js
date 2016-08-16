@@ -72,6 +72,7 @@ class Comment {
       .query()
       .findById(commentObj.commentId)
       .then(comment => {
+        console.log(comment);
         return Db
           .tc_likes
           .query()
@@ -91,7 +92,9 @@ class Comment {
             } else {
               return query
                 .insert({
-                  type: 'comment', liker_id: user.id
+                  type: 'comment',
+                  liker_id: user.id,
+                  type_id: comment.id
                 })
             }
           })
@@ -136,7 +139,9 @@ class Comment {
             } else {
               return query
                 .insert({
-                  type: 'sub_comment', liker_id: user.id
+                  type: 'sub_comment',
+                  liker_id: user.id,
+                  type_id: subComment.id
                 })
             }
           })

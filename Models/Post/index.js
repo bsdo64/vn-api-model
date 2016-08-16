@@ -15,7 +15,6 @@ class Post {
       .where('id', query.forumId)
       .first()
       .then(forum => {
-        console.log(forum);
         return Db
           .tc_posts
           .query()
@@ -153,7 +152,6 @@ class Post {
       .page(page, 10)
       .then(likeResult => {
 
-        console.log(likeResult);
 
         const likePostsIds = _.map(likeResult.results, like => like.type_id);
         const result = {
@@ -169,7 +167,6 @@ class Post {
           .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
           .then((posts) => {
 
-            console.log(posts.length);
 
             if (user) {
               return Db
@@ -269,7 +266,9 @@ class Post {
             } else {
               return query
                 .insert({
-                  type: 'post', liker_id: user.id
+                  type: 'post',
+                  liker_id: user.id,
+                  type_id: post.id
                 })
             }
           })
