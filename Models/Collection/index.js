@@ -37,7 +37,8 @@ class Collection {
       .tc_collection_forums
       .query()
       .where('collection_id', collectionId)
-      .then(collectionForumIds => {
+      .then(collectionForums => {
+        const collectionForumIds = collectionForums.map(value => value.forum_id);
         return Db
           .tc_forums
           .query()
@@ -47,25 +48,47 @@ class Collection {
 
   addForum(collectionId, forumId) {
     return Db
-      .tc_collections
+      .tc_collection_forums
       .query()
-      .where('id', collectionId)
+      .where({
+        forum_id: forumId,
+        collection_id: collectionId
+      })
       .first()
       .then(collection => {
-        return collection
-          .$relatedQuery('forums')
-          .relate(forumId)
+        if (collection) {
+          return null
+        } else {
+          return Db
+            .tc_collection_forums
+            .query()
+            .insert({
+              forum_id: forumId,
+              collection_id: collectionId
+            })
+        }
       })
-      .then(forumId => {
-        return Db
-          .tc_forums
-          .query()
-          .where('id', forumId)
-          .first()
+      .then(collectionForum => {
+        if (collectionForum) {
+          return Db
+            .tc_forums
+            .query()
+            .where('id', collectionForum.forum_id)
+            .first()
+        } else {
+          return null
+        }
       })
   }
   removeForum(collectionId, forumId) {
-
+    return Db
+      .tc_collection_forums
+      .query()
+      .delete()
+      .where({
+        forum_id: forumId,
+        collection_id: collectionId
+      })
   }
 }
 
