@@ -1,5 +1,6 @@
 'use strict';
 const Db = require('trendclear-database').Models;
+const Promise = require('bluebird');
 
 function mergeByProp(array1, array2, prop) {
   let arr3 = [];
@@ -16,6 +17,14 @@ function mergeByProp(array1, array2, prop) {
 }
 
 class Forum {
+  createForum(forumObj, user) {
+    console.log(forumObj);
+    return Db
+      .tc_forums
+      .query()
+      .insert(forumObj)
+  }
+
   getForumList(forumProperty, type = 'id') {
     return Db
       .tc_forums
@@ -35,6 +44,12 @@ class Forum {
       .where({[type]: forumProperty})
       .first()
       .then(function (forum) {
+
+        if (!forum) {
+          console.log(1);
+          throw Error('Forum not exist!');
+        }
+
         const knex = Db.tc_forum_prefixes.knex();
         return Db
           .tc_forum_prefixes
@@ -50,6 +65,10 @@ class Forum {
             return forum;
 
           })
+      })
+
+      .catch(function (err) {
+        throw new Error(err);
       })
   }
   
@@ -71,7 +90,10 @@ class Forum {
       .eager('[prefix, author.[icon,profile], forum]')
       .orderBy('created_at', 'DESC')
       .page(page, 10)
-
+      .catch(function (err) {
+        console.log(3);
+        throw new Error(err);
+      })
   }
   
   getPrefix(forumId) {
@@ -79,6 +101,10 @@ class Forum {
       .tc_forum_prefixes
       .query()
       .where('forum_id', '=', forumId)
+      .catch(function (err) {
+        console.log(4);
+        throw new Error(err);
+      })
   }
 }
 
