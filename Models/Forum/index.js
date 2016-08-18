@@ -16,12 +16,23 @@ function mergeByProp(array1, array2, prop) {
 }
 
 class Forum {
-  getForumInfo(forumId) {
+  getForumList(forumProperty, type = 'id') {
     return Db
       .tc_forums
       .query()
       .eager('prefixes')
-      .where({id: forumId})
+      .where(type, 'like', `%${forumProperty}%`)
+      .then(function (forums) {
+        return forums;
+      })
+  }
+
+  getForumInfo(forumProperty, type = 'id') {
+    return Db
+      .tc_forums
+      .query()
+      .eager('prefixes')
+      .where({[type]: forumProperty})
       .first()
       .then(function (forum) {
         const knex = Db.tc_forum_prefixes.knex();
@@ -30,7 +41,7 @@ class Forum {
           .query()
           .select('tc_forum_prefixes.*', knex.raw('CAST(COUNT(tc_posts.id) as integer)'))
           .join('tc_posts', 'tc_forum_prefixes.id', 'tc_posts.prefix_id')
-          .where('tc_forum_prefixes.forum_id', '=', forumId)
+          .where('tc_forum_prefixes.forum_id', '=', forum.id)
           .groupBy('tc_forum_prefixes.id')
           .then(function (countPrefix) {
 
