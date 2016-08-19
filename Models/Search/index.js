@@ -47,6 +47,18 @@ class Search {
         }
       })
   }
+
+  findForumByQuery(query, page = 0) {
+    const limit = 10;
+
+    return Db
+      .tc_forums
+      .query()
+      .where('title', 'like', query + '%')
+      .orWhere('description', 'like', '%' + query + '%')
+      .page(page, limit)
+      .orderBy('title')
+  }
 }
 
 module.exports = new Search();
