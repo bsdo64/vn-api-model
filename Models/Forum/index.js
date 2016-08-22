@@ -29,7 +29,7 @@ class Forum {
     return Db
       .tc_forums
       .query()
-      .eager('prefixes')
+      .eager('[prefixes, creator.profile]')
       .where(type, 'like', `%${forumProperty}%`)
       .then(function (forums) {
         return forums;
@@ -40,7 +40,7 @@ class Forum {
     return Db
       .tc_forums
       .query()
-      .eager('prefixes')
+      .eager('[prefixes, creator.profile]')
       .where({[type]: forumProperty})
       .first()
       .then(function (forum) {
