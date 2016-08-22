@@ -17,6 +17,10 @@ function mergeByProp(array1, array2, prop) {
 }
 
 class Forum {
+  constructor() {
+    this.Db = Db;
+  }
+
   createForum(forumObj, user) {
     console.log(forumObj);
     return Db
