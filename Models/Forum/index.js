@@ -29,6 +29,13 @@ class Forum {
       .insert(forumObj)
   }
 
+  patchForum(forumObj, user) {
+    return Db
+      .tc_forums
+      .query()
+      .patchAndFetchById(forumObj.id, forumObj.body)
+  }
+
   getForumList(forumProperty, type = 'id') {
     return Db
       .tc_forums
