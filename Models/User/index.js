@@ -242,7 +242,13 @@ class User {
             .query()
             .whereIn('name', ['write_post', 'write_comment', 'write_sub_comment']),
 
-          function (grade, role, skills) {
+          M
+            .tc_forum_categories
+            .query()
+            .select('tc_forum_categories.forum_id')
+            .join('tc_categories', 'tc_forum_categories.category_id', 'tc_categories.id'),
+
+          function (grade, role, skills, defaultFollowForumIds) {
             return newUser
               .$relatedQuery('grade')
               .insert({
@@ -262,6 +268,20 @@ class User {
                   .insert({
                     role_id: role.id
                   })
+              })
+              .then(function () {
+
+                console.log(defaultFollowForumIds);
+
+                const query = [];
+                for (let key in defaultFollowForumIds) {
+                  query.push({user_id: newUser.id, forum_id: defaultFollowForumIds[key].forum_id})
+                }
+
+                return M
+                  .tc_user_follow_forums
+                  .query()
+                  .insert(query)
               })
           })
           .then(function () {
@@ -291,7 +311,16 @@ class User {
     return M
       .tc_users
       .query()
-      .eager('[skills.skill.property, trendbox, grade.gradeDef, role, profile, icon.iconDef, collections.forums]')
+      .eager('[' +
+        'skills.skill.property, ' +
+        'trendbox, ' +
+        'grade.gradeDef, ' +
+        'role, ' +
+        'profile, ' +
+        'icon.iconDef, ' +
+        'collections.forums, ' +
+        'follow_forums' +
+        ']')
       .where(userObj)
       .first()
       .then(function (findUser) {

@@ -140,8 +140,6 @@ class Post {
   likePostList (page = 0, user) {
     const knex = Db.tc_posts.knex();
 
-    // .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum.category.category_group.club, tags]')
-
     const query = Db
       .tc_likes
       .query()
@@ -151,7 +149,6 @@ class Post {
     return query
       .page(page, 10)
       .then(likeResult => {
-
 
         const likePostsIds = _.map(likeResult.results, like => like.type_id);
         const result = {
@@ -193,7 +190,7 @@ class Post {
       })
   }
 
-  bestPostList (page = 0, user, categoryValue) {
+  bestPostList (page = 0, user, forumIds) {
     const knex = Db.tc_posts.knex();
 
     let hotQuery;
@@ -209,37 +206,66 @@ class Post {
       .select('*', knex.raw(hotQuery))
       .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]');
 
-    if (categoryValue) {
+    if (forumIds) {
       query
         .select('*', 'tc_posts.title as title', 'forum.id as forumId', 'tc_posts.id as id')
         .join('tc_forums as forum', 'tc_posts.forum_id', 'forum.id')
-        .whereIn('forum.id', categoryValue)
+        .whereIn('forum.id', forumIds)
     }
 
-    return query
-      .orderBy('hot', 'DESC')
-      .page(page, 10)
-      .then((posts) => {
+    if (user) {
+      return Db
+        .tc_user_follow_forums
+        .query()
+        .where({user_id: user.id})
+        .then(follows => {
 
-        if (user) {
-          return Db
-            .tc_posts
-            .query()
-            .select('tc_posts.id as postId', 'tc_likes.liker_id')
-            .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
-            .andWhere('tc_likes.type', 'post')
-            .andWhere('tc_likes.liker_id', user.id)
-            .then(function (likeTable) {
+          const followForumIds = follows.map(v => v.forum_id);
+          const allForumIds = Array.isArray(forumIds) ? followForumIds.concat(forumIds) : followForumIds;
 
-              _.map(posts.results, function (value) {
-                value.liked = !!_.find(likeTable, {'postId': value.id});
-              });
-              return posts
-            })
-        } else {
-          return posts;
-        }
-      })
+          return Promise.join(
+            query
+              .orderBy('hot', 'DESC')
+              .page(page, 10)
+              .whereIn('forum_id', allForumIds),
+
+            Db
+              .tc_posts
+              .query()
+              .select('tc_posts.id as postId', 'tc_likes.liker_id')
+              .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+              .andWhere('tc_likes.type', 'post')
+              .andWhere('tc_likes.liker_id', user.id),
+
+            (posts, likeTable) => {
+
+            _.map(posts.results, function (value) {
+              value.liked = !!_.find(likeTable, {'postId': value.id});
+            });
+
+            return posts;
+          });
+        })
+    } else {
+      `SELECT   "public"."tc_forum_categories"."forum_id"
+      FROM     "tc_forum_categories"
+      INNER JOIN "tc_categories"  ON "tc_forum_categories"."category_id" = "tc_categories"."id"`;
+
+      return Db
+        .tc_forum_categories
+        .query()
+        .select('tc_forum_categories.forum_id')
+        .join('tc_categories', 'tc_forum_categories.category_id', 'tc_categories.id')
+        .then(forumIds => {
+
+          const defaultForumIds = forumIds.map(v => v.forum_id);
+
+          return query
+            .orderBy('hot', 'DESC')
+            .page(page, 10)
+            .whereIn('forum_id', defaultForumIds)
+        })
+    }
   }
 
   likePost (postObj, user) {

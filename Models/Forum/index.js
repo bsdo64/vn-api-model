@@ -117,6 +117,36 @@ class Forum {
         throw new Error(err);
       })
   }
+
+  followForum(followObj, user) {
+    return Db
+      .tc_user_follow_forums
+      .query()
+      .where({forum_id: followObj.forumId, user_id: user.id})
+      .first()
+      .then(follow => {
+        if (follow) {
+          return null;
+        } else {
+          return user
+            .$relatedQuery('follow_forums')
+            .insert({
+              forum_id: followObj.forumId
+            })
+        }
+      })
+  }
+
+  unFollowForum(followObj, user) {
+    return user
+      .$relatedQuery('follow_forums')
+      .delete()
+      .where({id: followObj.id})
+      .then((deletedItem) => {
+        console.log(deletedItem);
+        return deletedItem;
+      })
+  }
 }
 
 module.exports = new Forum();
