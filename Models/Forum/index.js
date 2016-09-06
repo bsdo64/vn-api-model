@@ -179,20 +179,15 @@ class Forum {
   }
 
   followForum(followObj, user) {
-    return Db
-      .tc_user_follow_forums
-      .query()
-      .where({forum_id: followObj.forumId, user_id: user.id})
-      .first()
-      .then(follow => {
-        if (follow) {
-          return null;
+    return user
+      .$relatedQuery('follow_forums')
+      .relate(followObj.forumId)
+      .then(forumId => {
+
+        if (forumId) {
+          return {forum_id: forumId, user_id: user.id};
         } else {
-          return user
-            .$relatedQuery('follow_forums')
-            .insert({
-              forum_id: followObj.forumId
-            })
+          return null;
         }
       })
   }
@@ -200,11 +195,10 @@ class Forum {
   unFollowForum(followObj, user) {
     return user
       .$relatedQuery('follow_forums')
-      .delete()
-      .where({id: followObj.id})
-      .then((deletedItem) => {
-        console.log(deletedItem);
-        return deletedItem;
+      .unrelate()
+      .where('id', followObj.forum_id)
+      .then(() => {
+        return followObj
       })
   }
 }
