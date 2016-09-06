@@ -1,5 +1,6 @@
 'use strict';
 const Db = require('trendclear-database').Models;
+const knex = require('trendclear-database').knex;
 const Promise = require('bluebird');
 
 function mergeByProp(array1, array2, prop) {
@@ -19,6 +20,7 @@ function mergeByProp(array1, array2, prop) {
 class Forum {
   constructor() {
     this.Db = Db;
+    this.knex = knex;
   }
 
   createForum(forumObj, user) {
@@ -34,6 +36,65 @@ class Forum {
       .tc_forums
       .query()
       .patchAndFetchById(forumObj.id, forumObj.body)
+  }
+
+  getHotList (options) {
+    `SELECT 
+        tc_posts.forum_id,
+        MAX(tc_posts.created_at) as new_created_at
+      FROM 
+        public.tc_posts
+      GROUP BY
+        tc_posts.forum_id
+      ORDER BY
+        new_created_at DESC;`;
+
+    return Db
+      .tc_posts
+      .query()
+      .select(knex.raw(`MAX(created_at) as new_created_at`), 'forum_id')
+      .groupBy('forum_id')
+      .orderBy('new_created_at')
+      .then(forumIds => {
+        options.whereIn = {
+          type: 'id',
+          data: forumIds.map(v => {
+            return v.forum_id
+          })
+        };
+
+        return this.getList(options)
+      })
+  }
+
+  getList(options) {
+    const initQuery = Db.tc_forums.query();
+
+    options.order.direction = options.order.direction || 'DESC';
+    options.limit = options.limit || 50;
+    options.page = options.page || 1;
+
+    if (options.order) {
+      initQuery.orderBy(options.order.column, options.order.direction);
+    }
+
+    if (options.whereIn) {
+      initQuery.whereIn(options.whereIn.type, options.whereIn.data)
+    }
+
+    if (options.page) {
+      initQuery.page(options.page - 1, options.limit)
+    }
+
+    if (options.where) {
+      initQuery.where(options.where)
+    }
+
+    if (options.eager) {
+      initQuery.eager(options.eager)
+    }
+
+    return initQuery;
   }
 
   getForumList(forumProperty, type = 'id') {
@@ -61,7 +122,6 @@ class Forum {
           throw Error('Forum not exist!');
         }
 
-        const knex = Db.tc_forum_prefixes.knex();
         return Db
           .tc_forum_prefixes
           .query()

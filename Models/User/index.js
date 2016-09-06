@@ -319,7 +319,8 @@ class User {
         'profile, ' +
         'icon.iconDef, ' +
         'collections.forums, ' +
-        'follow_forums' +
+        'follow_forums.forum,' +
+        'forumCreated' +
         ']')
       .where(userObj)
       .first()

@@ -1,5 +1,6 @@
 'use strict';
 const Db = require('trendclear-database').Models;
+const knex = require('trendclear-database').knex;
 const connectionType = require('trendclear-database').connectionConfig;
 const Promise = require('bluebird');
 const _ = require('lodash');
@@ -8,6 +9,11 @@ const Trendbox = require('../Trendbox');
 const Skill = require('../Skill');
 
 class Post {
+  constructor() {
+    this.Db = Db;
+    this.knex = knex;
+  }
+
   submitPost (post, user, query) {
     return Db
       .tc_forums
@@ -195,9 +201,9 @@ class Post {
 
     let hotQuery;
     if (connectionType.client === 'mysql') {
-      hotQuery = 'ROUND(LOG(GREATEST(like_count, 1)) + (UNIX_TIMESTAMP(created_at) - UNIX_TIMESTAMP())/45000, 7) as hot';
+      hotQuery = 'ROUND(LOG(GREATEST(like_count, 1)) + (UNIX_TIMESTAMP(tc_posts.created_at) - UNIX_TIMESTAMP())/45000, 7) as hot';
     } else if (connectionType.client === 'postgresql') {
-      hotQuery = 'LOG(GREATEST(like_count, 1)) + extract(EPOCH FROM age(created_at, now()))/45000 as hot';
+      hotQuery = 'LOG(GREATEST(like_count, 1)) + extract(EPOCH FROM age(tc_posts.created_at, now()))/45000 as hot';
     }
 
     const query = Db
@@ -208,9 +214,7 @@ class Post {
 
     if (forumIds) {
       query
-        .select('*', 'tc_posts.title as title', 'forum.id as forumId', 'tc_posts.id as id')
-        .join('tc_forums as forum', 'tc_posts.forum_id', 'forum.id')
-        .whereIn('forum.id', forumIds)
+        .whereIn('forum_id', forumIds)
     }
 
     if (user) {
