@@ -319,7 +319,7 @@ class User {
         'profile, ' +
         'icon.iconDef, ' +
         'collections.forums, ' +
-        'follow_forums.creator,' +
+        'follow_forums.creator.profile,' +
         'forumCreated' +
         ']')
       .where(userObj)
