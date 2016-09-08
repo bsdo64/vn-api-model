@@ -528,6 +528,22 @@ class User {
       .first()
   }
 
+  reportItem(reportObj, user) {
+    return M
+      .tc_user_reports
+      .query()
+      .insert(reportObj)
+  }
+
+  deleteItem(deleteObj) {
+    const type = deleteObj.type;
+    const typeId = deleteObj.type_id;
+    return M[`tc_${type}s`]
+      .query()
+      .patchAndFetchById(typeId, {deleted: true})
+
+  }
+
   readNoti(notiObj, user) {
     return user
       .$relatedQuery('notifications')

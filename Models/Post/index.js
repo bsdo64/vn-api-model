@@ -166,6 +166,7 @@ class Post {
           .tc_posts
           .query()
           .whereIn('id', likePostsIds)
+          .where('deleted', false)
           .orderBy('created_at', 'DESC')
           .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
           .then((posts) => {
@@ -231,7 +232,9 @@ class Post {
             query
               .orderBy('hot', 'DESC')
               .page(page, 10)
-              .whereIn('forum_id', allForumIds),
+              .whereIn('forum_id', allForumIds)
+              .andWhere('deleted', false)
+            ,
 
             Db
               .tc_posts
@@ -356,6 +359,7 @@ class Post {
       .tc_posts
       .query()
       .where('author_id', user.id)
+      .where('deleted', false)
       .page(page, 10)
       .orderBy('created_at', 'DESC')
       .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
@@ -394,6 +398,7 @@ class Post {
       .select('tc_posts.id')
       .join('tc_comments', 'tc_posts.id', 'tc_comments.post_id')
       .where('tc_comments.author_id', user.id)
+      .where('tc_posts.deleted', false)
       .groupBy('tc_posts.id')
       .then(postsId => {
 

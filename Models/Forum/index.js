@@ -147,7 +147,8 @@ class Forum {
     const query = Db
       .tc_posts
       .query()
-      .where('forum_id', '=', forumId);
+      .where('forum_id', '=', forumId)
+      .andWhere('deleted', false)
       
     if (forumSearch) {
       query.where('title', 'like', '%' + forumSearch + '%');
