@@ -14,15 +14,19 @@ class Search {
     let q = Db
       .tc_posts
       .query()
-      .where('title', 'like', '%' + query + '%');
+      .where('deleted', false)
+      .andWhere('title', 'like', '%' + query + '%');
 
     for (let index in array) {
-      q = q.orWhere('content', 'like', '%' + array[index] + '%')
+      q = q
+        .orWhere('content', 'like', '%' + array[index] + '%')
+        .andWhere('deleted', false)
     }
 
     return q
       .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
       .orderBy('created_at', 'DESC')
+      .andWhere('deleted', false)
       .page(page, limit)
       .then((posts) => {
         if (user) {
@@ -55,6 +59,7 @@ class Search {
       .tc_forums
       .query()
       .where('title', 'like', query + '%')
+      .andWhere('deleted', false)
       .orWhere('description', 'like', '%' + query + '%')
       .page(page, limit)
       .orderBy('title')
