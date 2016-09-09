@@ -149,7 +149,7 @@ class Post {
     const query = Db
       .tc_likes
       .query()
-      .where('tc_likes.type', 'post')
+      .where('tc_likes.type', '=', 'post')
       .andWhere('tc_likes.liker_id', user.id);
 
     return query
@@ -166,7 +166,7 @@ class Post {
           .tc_posts
           .query()
           .whereIn('id', likePostsIds)
-          .where('deleted', false)
+          .andWhere('deleted', false)
           .orderBy('created_at', 'DESC')
           .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
           .then((posts) => {
@@ -180,6 +180,7 @@ class Post {
                 .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
                 .andWhere('tc_likes.type', 'post')
                 .andWhere('tc_likes.liker_id', user.id)
+                .andWhere('tc_posts.deleted', false)
                 .then(function (likeTable) {
 
                   _.map(posts, function (value) {
@@ -211,7 +212,8 @@ class Post {
       .tc_posts
       .query()
       .select('*', knex.raw(hotQuery))
-      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]');
+      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
+      .where('deleted', false);
 
     if (forumIds) {
       query

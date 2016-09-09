@@ -541,6 +541,17 @@ class User {
     return M[`tc_${type}s`]
       .query()
       .patchAndFetchById(typeId, {deleted: true})
+      .then(deletedItem => {
+        return M
+          .tc_likes
+          .query()
+          .delete()
+          .where({
+            type: type,
+            type_id: typeId
+          })
+          .then(() => deletedItem)
+      })
 
   }
 

@@ -36,6 +36,15 @@ class Comment {
       })
   }
 
+  updateComment(comment, user) {
+    return Db
+      .tc_comments
+      .query()
+      .patchAndFetchById(comment.id, {
+        content: comment.content
+      })
+  }
+
   submitSubComment(subComment, user) {
     return Db
       .tc_comments
