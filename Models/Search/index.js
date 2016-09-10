@@ -59,7 +59,6 @@ class Search {
       .tc_forums
       .query()
       .where('title', 'like', query + '%')
-      .andWhere('deleted', false)
       .orWhere('description', 'like', '%' + query + '%')
       .page(page, limit)
       .orderBy('title')
