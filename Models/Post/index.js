@@ -198,7 +198,7 @@ class Post {
       })
   }
 
-  bestPostList (page = 0, user, forumIds) {
+  bestPostList ({page = 0, user, forumIds, order, listType} = props) {
     const knex = Db.tc_posts.knex();
 
     let hotQuery;
@@ -220,6 +220,62 @@ class Post {
         .whereIn('forum_id', forumIds)
     }
 
+    switch (order) {
+      case 'new':
+        query.orderBy('created_at', 'DESC');
+        break;
+      case 'hot':
+        query
+          .orderBy('hot', 'DESC')
+          .orderBy('created_at', 'DESC');
+        break;
+      case 'm_view':
+        query
+          .orderBy('view_count', 'DESC')
+          .orderBy('created_at', 'DESC');
+        break;
+      case 'm_comment':
+        query
+          .orderBy('comment_count', 'DESC')
+          .orderBy('created_at', 'DESC');
+        break;
+      default:
+        query
+          .orderBy('hot', 'DESC')
+          .orderBy('created_at', 'DESC');
+        break;
+    }
+
+    if (listType === 'all') {
+      if (user) {
+        return Promise.join(
+          query
+            .page(page, 10)
+            .andWhere('deleted', false)
+          ,
+
+          Db
+            .tc_posts
+            .query()
+            .select('tc_posts.id as postId', 'tc_likes.liker_id')
+            .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+            .andWhere('tc_likes.type', 'post')
+            .andWhere('tc_likes.liker_id', user.id),
+
+          (posts, likeTable) => {
+
+            _.map(posts.results, function (value) {
+              value.liked = !!_.find(likeTable, {'postId': value.id});
+            });
+
+            return posts;
+          });
+      } else {
+        return query
+          .page(page, 10)
+      }
+    }
+
     if (user) {
       return Db
         .tc_user_follow_forums
@@ -232,7 +288,6 @@ class Post {
 
           return Promise.join(
             query
-              .orderBy('hot', 'DESC')
               .page(page, 10)
               .whereIn('forum_id', allForumIds)
               .andWhere('deleted', false)
@@ -270,7 +325,6 @@ class Post {
           const defaultForumIds = forumIds.map(v => v.forum_id);
 
           return query
-            .orderBy('hot', 'DESC')
             .page(page, 10)
             .whereIn('forum_id', defaultForumIds)
         })

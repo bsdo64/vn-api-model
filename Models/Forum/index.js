@@ -144,12 +144,12 @@ class Forum {
       })
   }
   
-  getForumPostList(forumId, page = 0, forumSearch, forumPrefix) {
+  getForumPostList({forumId, page = 0, forumSearch, forumPrefix, order='new'}) {
     const query = Db
       .tc_posts
       .query()
       .where('forum_id', '=', forumId)
-      .andWhere('deleted', false)
+      .andWhere('deleted', false);
       
     if (forumSearch) {
       query.where('title', 'like', '%' + forumSearch + '%');
@@ -159,9 +159,38 @@ class Forum {
       query.where('prefix_id', forumPrefix);
     }
 
+    if (!order) {
+      query.orderBy('created_at', 'DESC');
+    }
+
+    switch (order) {
+      case 'new':
+        query.orderBy('created_at', 'DESC');
+        break;
+      case 'hot':
+        query
+          .orderBy('like_count', 'DESC')
+          .orderBy('created_at', 'DESC');
+        break;
+      case 'm_view':
+        query
+          .orderBy('view_count', 'DESC')
+          .orderBy('created_at', 'DESC');
+        break;
+      case 'm_comment':
+        query
+          .orderBy('comment_count', 'DESC')
+          .orderBy('created_at', 'DESC');
+        break;
+      default:
+        query
+          .orderBy('like_count', 'DESC')
+          .orderBy('created_at', 'DESC');
+        break;
+    }
+
     return query
       .eager('[prefix, author.[icon,profile], forum]')
-      .orderBy('created_at', 'DESC')
       .page(page, 10)
       .catch(function (err) {
         console.log(3);
@@ -177,6 +206,36 @@ class Forum {
       .catch(function (err) {
         console.log(4);
         throw new Error(err);
+      })
+  }
+
+  addPrefix(prefixObj) {
+    return Db
+      .tc_forum_prefixes
+      .query()
+      .insert(prefixObj)
+  }
+
+  updatePrefix(prefixObj) {
+    return Db
+      .tc_forum_prefixes
+      .query()
+      .patchAndFetchById(prefixObj.id, prefixObj)
+  }
+
+  deletePrefix(prefixObj) {
+    return Db
+      .tc_posts
+      .query()
+      .patch({prefix_id: null})
+      .where('prefix_id', '=', prefixObj.id)
+      .then(result => {
+
+        return Db
+          .tc_forum_prefixes
+          .query()
+          .delete()
+          .where('id', '=', prefixObj.id)
       })
   }
 

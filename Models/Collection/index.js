@@ -47,15 +47,17 @@ class Collection {
       })
   }
 
-  getCollectionPosts(collectionId, page, user) {
+  getCollectionPosts(props) {
+    const {collectionId, page, user} = props;
+
     return Db
       .tc_collection_forums
       .query()
       .where('collection_id', collectionId)
       .then(collectionForums => {
-        const collectionForumIds = collectionForums.map(value => value.forum_id);
+        props.forumIds = collectionForums.map(value => value.forum_id);
 
-        return Post.bestPostList(page, user, collectionForumIds)
+        return Post.bestPostList(props)
       })
   }
 
