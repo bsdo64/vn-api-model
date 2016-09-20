@@ -14,7 +14,7 @@ class Post {
     this.knex = knex;
   }
 
-  submitPost (post, user, query) {
+  submitPost (postObj, user, query) {
     return Db
       .tc_forums
       .query()
@@ -25,16 +25,39 @@ class Post {
           .tc_posts
           .query()
           .insert({
-            title     : post.title,
-            content   : post.content,
+            title     : postObj.title,
+            content   : postObj.content,
             author_id : user.id,
             created_at: new Date(),
             forum_id  : forum.id,
-            prefix_id : post.prefixId
+            prefix_id : postObj.prefixId
           })
           .then(function (post) {
             return Promise
               .resolve()
+              .then(() => {
+                if (postObj.isAnnounce) {
+                  return Db
+                    .tc_forum_announce_posts
+                    .query()
+                    .where('forum_id', '=', forum.id)
+                    .then(announces => {
+                      if (announces.length < 5) {
+                        return Db
+                          .tc_forum_announce_posts
+                          .query()
+                          .insert({
+                            forum_id: forum.id,
+                            post_id: post.id
+                          })
+                      } else {
+                        return true;
+                      }
+                    })
+                } else {
+                  return true;
+                }
+              })
               .then(Skill.setUsingTime(user, 'write_post'))
               .then(Trendbox.incrementPointT(user, 10))
               .then(Trendbox.incrementExp(user, 5))
@@ -97,48 +120,49 @@ class Post {
               }
             })
             .orderBy('created_at', 'desc')
+            .orderBy('id', 'desc')
         ])
-        .spread((total, results) => {
+          .spread((total, results) => {
 
-          if (user) {
-            return Db
-              .tc_posts
-              .query()
-              .select('tc_posts.id as postId', 'tc_likes.liker_id')
-              .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
-              .andWhere('tc_likes.type', 'post')
-              .andWhere('tc_likes.liker_id', user.id)
-              .then(function (likeTable) {
-                post.liked = !!_.find(likeTable, {postId: post.id});
-                return true
-              })
-              .then(() =>
-                Db
-                  .tc_comments
-                  .query()
-                  .select('tc_comments.id as commentId', 'tc_likes.liker_id')
-                  .join('tc_likes', 'tc_comments.id', knex.raw(`CAST(tc_likes.type_id as int)`))
-                  .andWhere('tc_likes.type', 'comment')
-                  .andWhere('tc_likes.liker_id', user.id)
-                  .then(function (likeTable) {
+            if (user) {
+              return Db
+                .tc_posts
+                .query()
+                .select('tc_posts.id as postId', 'tc_likes.liker_id')
+                .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+                .andWhere('tc_likes.type', 'post')
+                .andWhere('tc_likes.liker_id', user.id)
+                .then(function (likeTable) {
+                  post.liked = !!_.find(likeTable, {postId: post.id});
+                  return true
+                })
+                .then(() =>
+                  Db
+                    .tc_comments
+                    .query()
+                    .select('tc_comments.id as commentId', 'tc_likes.liker_id')
+                    .join('tc_likes', 'tc_comments.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+                    .andWhere('tc_likes.type', 'comment')
+                    .andWhere('tc_likes.liker_id', user.id)
+                    .then(function (likeTable) {
 
-                    _.map(results, function (value) {
-                      value.liked = !!_.find(likeTable, {commentId: value.id});
-                    });
+                      _.map(results, function (value) {
+                        value.liked = !!_.find(likeTable, {commentId: value.id});
+                      });
 
-                    post.comments = results;
-                    post.comment_count = parseInt(total, 10);
-                    return post;
-                  })
-              )
-          } else {
+                      post.comments = results;
+                      post.comment_count = parseInt(total, 10);
+                      return post;
+                    })
+                )
+            } else {
 
-            post.comments = results;
-            post.comment_count = parseInt(total, 10);
-            return post;
+              post.comments = results;
+              post.comment_count = parseInt(total, 10);
+              return post;
 
-          }
-        })
+            }
+          })
 
       })
   }
@@ -222,27 +246,33 @@ class Post {
 
     switch (order) {
       case 'new':
-        query.orderBy('created_at', 'DESC');
+        query
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
       case 'hot':
         query
           .orderBy('hot', 'DESC')
-          .orderBy('created_at', 'DESC');
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
       case 'm_view':
         query
           .orderBy('view_count', 'DESC')
-          .orderBy('created_at', 'DESC');
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
       case 'm_comment':
         query
           .orderBy('comment_count', 'DESC')
-          .orderBy('created_at', 'DESC');
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
       default:
         query
           .orderBy('hot', 'DESC')
-          .orderBy('created_at', 'DESC');
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
     }
 
@@ -303,12 +333,12 @@ class Post {
 
             (posts, likeTable) => {
 
-            _.map(posts.results, function (value) {
-              value.liked = !!_.find(likeTable, {'postId': value.id});
-            });
+              _.map(posts.results, function (value) {
+                value.liked = !!_.find(likeTable, {'postId': value.id});
+              });
 
-            return posts;
-          });
+              return posts;
+            });
         })
     } else {
       `SELECT   "public"."tc_forum_categories"."forum_id"

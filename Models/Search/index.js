@@ -63,6 +63,29 @@ class Search {
       .page(page, limit)
       .orderBy('title')
   }
+
+  findUsersByNick(searchObj, page = 0) {
+    const limit = 10;
+    const type = searchObj.type;
+
+    switch (type) {
+      case 'manager':
+        return Db
+          .tc_users
+          .query()
+          .where('nick', 'like', searchObj.nick + '%')
+          .page(page, limit)
+          .orderBy('nick');
+
+      default:
+        return Db
+          .tc_users
+          .query()
+          .where('nick', 'like', searchObj.nick + '%')
+          .page(page, limit)
+          .orderBy('nick')
+    }
+  }
 }
 
 module.exports = new Search();

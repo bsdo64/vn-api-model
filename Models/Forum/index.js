@@ -24,11 +24,20 @@ class Forum {
   }
 
   createForum(forumObj, user) {
-    console.log(forumObj);
     return Db
       .tc_forums
       .query()
       .insert(forumObj)
+      .then(forum => {
+        return Db
+          .tc_forum_managers
+          .query()
+          .insert({
+            forum_id: forum.id,
+            user_id: user.id
+          })
+          .then(() => forum)
+      })
   }
 
   patchForum(forumObj, user) {
@@ -75,7 +84,9 @@ class Forum {
     options.page = options.page || 1;
 
     if (options.order) {
-      initQuery.orderBy(options.order.column, options.order.direction);
+      initQuery
+        .orderBy(options.order.column, options.order.direction)
+        .orderBy('id', 'desc');
     }
 
     if (options.whereIn) {
@@ -109,16 +120,19 @@ class Forum {
   }
 
   getForumInfo(forumProperty, type = 'id') {
+    const countFollows = Db.tc_user_follow_forums.query().count('*').where(knex.raw('tc_user_follow_forums.forum_id = tc_forums.id')).as('followCount');
+    const countSubs = Db.tc_collection_forums.query().count('*').where(knex.raw('tc_collection_forums.forum_id = tc_forums.id')).as('subsCount');
+
     return Db
       .tc_forums
       .query()
-      .eager('[prefixes, creator.profile]')
+      .select('tc_forums.*', countFollows, countSubs)
+      .eager('[prefixes, creator.profile, announces.author, managers]')
       .where({[type]: forumProperty})
       .first()
       .then(function (forum) {
 
         if (!forum) {
-          console.log(1);
           throw Error('Forum not exist!');
         }
 
@@ -143,14 +157,14 @@ class Forum {
         throw new Error(err);
       })
   }
-  
+
   getForumPostList({forumId, page = 0, forumSearch, forumPrefix, order='new'}) {
     const query = Db
       .tc_posts
       .query()
       .where('forum_id', '=', forumId)
       .andWhere('deleted', false);
-      
+
     if (forumSearch) {
       query.where('title', 'like', '%' + forumSearch + '%');
     }
@@ -160,32 +174,40 @@ class Forum {
     }
 
     if (!order) {
-      query.orderBy('created_at', 'DESC');
+      query
+        .orderBy('created_at', 'DESC')
+        .orderBy('id', 'desc');
     }
 
     switch (order) {
       case 'new':
-        query.orderBy('created_at', 'DESC');
+        query
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
       case 'hot':
         query
           .orderBy('like_count', 'DESC')
-          .orderBy('created_at', 'DESC');
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
       case 'm_view':
         query
           .orderBy('view_count', 'DESC')
-          .orderBy('created_at', 'DESC');
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
       case 'm_comment':
         query
           .orderBy('comment_count', 'DESC')
-          .orderBy('created_at', 'DESC');
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
       default:
         query
           .orderBy('like_count', 'DESC')
-          .orderBy('created_at', 'DESC');
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
     }
 
@@ -197,7 +219,7 @@ class Forum {
         throw new Error(err);
       })
   }
-  
+
   getPrefix(forumId) {
     return Db
       .tc_forum_prefixes
@@ -260,6 +282,26 @@ class Forum {
       .where('id', followObj.forum_id)
       .then(() => {
         return followObj
+      })
+  }
+
+  addManager(obj) {
+    return Db
+      .tc_forum_managers
+      .query()
+      .insert(obj)
+      .then(manager => {
+        return Db
+          .tc_users
+          .query()
+          .where({id: manager.user_id})
+          .first()
+          .then(user => {
+            return {
+              manager,
+              user: user
+            }
+          })
       })
   }
 }
