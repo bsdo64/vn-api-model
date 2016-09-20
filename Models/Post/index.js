@@ -14,7 +14,7 @@ class Post {
     this.knex = knex;
   }
 
-  submitPost (post, user, query) {
+  submitPost (postObj, user, query) {
     return Db
       .tc_forums
       .query()
@@ -25,16 +25,39 @@ class Post {
           .tc_posts
           .query()
           .insert({
-            title     : post.title,
-            content   : post.content,
+            title     : postObj.title,
+            content   : postObj.content,
             author_id : user.id,
             created_at: new Date(),
             forum_id  : forum.id,
-            prefix_id : post.prefixId
+            prefix_id : postObj.prefixId
           })
           .then(function (post) {
             return Promise
               .resolve()
+              .then(() => {
+                if (postObj.isAnnounce) {
+                  return Db
+                    .tc_forum_announce_posts
+                    .query()
+                    .where('forum_id', '=', forum.id)
+                    .then(announces => {
+                      if (announces.length < 5) {
+                        return Db
+                          .tc_forum_announce_posts
+                          .query()
+                          .insert({
+                            forum_id: forum.id,
+                            post_id: post.id
+                          })
+                      } else {
+                        return true;
+                      }
+                    })
+                } else {
+                  return true;
+                }
+              })
               .then(Skill.setUsingTime(user, 'write_post'))
               .then(Trendbox.incrementPointT(user, 10))
               .then(Trendbox.incrementExp(user, 5))

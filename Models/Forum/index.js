@@ -24,11 +24,20 @@ class Forum {
   }
 
   createForum(forumObj, user) {
-    console.log(forumObj);
     return Db
       .tc_forums
       .query()
       .insert(forumObj)
+      .then(forum => {
+        return Db
+          .tc_forum_managers
+          .query()
+          .insert({
+            forum_id: forum.id,
+            user_id: user.id
+          })
+          .then(() => forum)
+      })
   }
 
   patchForum(forumObj, user) {
@@ -109,16 +118,19 @@ class Forum {
   }
 
   getForumInfo(forumProperty, type = 'id') {
+    const countFollows = Db.tc_user_follow_forums.query().count('*').where(knex.raw('tc_user_follow_forums.forum_id = tc_forums.id')).as('followCount');
+    const countSubs = Db.tc_collection_forums.query().count('*').where(knex.raw('tc_collection_forums.forum_id = tc_forums.id')).as('subsCount');
+
     return Db
       .tc_forums
       .query()
-      .eager('[prefixes, creator.profile]')
+      .select('tc_forums.*', countFollows, countSubs)
+      .eager('[prefixes, creator.profile, announces.author, managers]')
       .where({[type]: forumProperty})
       .first()
       .then(function (forum) {
 
         if (!forum) {
-          console.log(1);
           throw Error('Forum not exist!');
         }
 
@@ -260,6 +272,26 @@ class Forum {
       .where('id', followObj.forum_id)
       .then(() => {
         return followObj
+      })
+  }
+
+  addManager(obj) {
+    return Db
+      .tc_forum_managers
+      .query()
+      .insert(obj)
+      .then(manager => {
+        return Db
+          .tc_users
+          .query()
+          .where({id: manager.user_id})
+          .first()
+          .then(user => {
+            return {
+              manager,
+              user: user
+            }
+          })
       })
   }
 }

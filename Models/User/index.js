@@ -550,6 +550,17 @@ class User {
             type: type,
             type_id: typeId
           })
+          .then(() => {
+            if (type === 'post') {
+              return M
+                .tc_forum_announce_posts
+                .query()
+                .delete()
+                .where('post_id', '=', typeId)
+            }
+
+            return false;
+          })
           .then(() => deletedItem)
       })
 
