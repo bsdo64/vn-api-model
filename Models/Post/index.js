@@ -71,15 +71,42 @@ class Post {
       })
   }
 
-  updatePost (post, user) {
+  updatePost (postObj, user) {
     return Db
       .tc_posts
       .query()
-      .patchAndFetchById(post.postId, {title: post.title, content: post.content})
+      .patchAndFetchById(postObj.postId, {title: postObj.title, content: postObj.content})
       .then((post) => {
-        return post
-          .$query()
-          .eager('forum')
+        return Promise
+          .resolve()
+          .then(() => {
+            if (postObj.isAnnounce) {
+              return Db
+                .tc_forum_announce_posts
+                .query()
+                .where('forum_id', '=', post.forum_id)
+                .then(announces => {
+                  if (announces.length < 5) {
+                    return Db
+                      .tc_forum_announce_posts
+                      .query()
+                      .insert({
+                        forum_id: post.forum_id,
+                        post_id: post.id
+                      })
+                  } else {
+                    return true;
+                  }
+                })
+            } else {
+              return true;
+            }
+          })
+          .then(() => {
+            return post
+              .$query()
+              .eager('forum')
+          })
       })
   }
 

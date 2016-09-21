@@ -127,7 +127,7 @@ class Forum {
       .tc_forums
       .query()
       .select('tc_forums.*', countFollows, countSubs)
-      .eager('[prefixes, creator.profile, announces.author, managers]')
+      .eager('[prefixes, creator.profile, announces.author, managers, bans]')
       .where({[type]: forumProperty})
       .first()
       .then(function (forum) {
@@ -299,6 +299,33 @@ class Forum {
           .then(user => {
             return {
               manager,
+              user: user
+            }
+          })
+      })
+  }
+
+  deleteAnnounce(obj) {
+    return Db
+      .tc_forum_announce_posts
+      .query()
+      .delete(obj);
+  }
+
+  addBanUser(obj) {
+    return Db
+      .tc_forum_ban_users
+      .query()
+      .insert(obj)
+      .then(bannedUser => {
+        return Db
+          .tc_users
+          .query()
+          .where({id: bannedUser.user_id})
+          .first()
+          .then(user => {
+            return {
+              bannedUser,
               user: user
             }
           })

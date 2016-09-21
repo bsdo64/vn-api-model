@@ -77,6 +77,14 @@ class Search {
           .page(page, limit)
           .orderBy('nick');
 
+      case 'banUser':
+        return Db
+          .tc_users
+          .query()
+          .where('nick', 'like', searchObj.nick + '%')
+          .page(page, limit)
+          .orderBy('nick');
+
       default:
         return Db
           .tc_users
