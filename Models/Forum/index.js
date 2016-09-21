@@ -84,7 +84,9 @@ class Forum {
     options.page = options.page || 1;
 
     if (options.order) {
-      initQuery.orderBy(options.order.column, options.order.direction);
+      initQuery
+        .orderBy(options.order.column, options.order.direction)
+        .orderBy('id', 'desc');
     }
 
     if (options.whereIn) {
@@ -155,14 +157,14 @@ class Forum {
         throw new Error(err);
       })
   }
-  
+
   getForumPostList({forumId, page = 0, forumSearch, forumPrefix, order='new'}) {
     const query = Db
       .tc_posts
       .query()
       .where('forum_id', '=', forumId)
       .andWhere('deleted', false);
-      
+
     if (forumSearch) {
       query.where('title', 'like', '%' + forumSearch + '%');
     }
@@ -172,32 +174,40 @@ class Forum {
     }
 
     if (!order) {
-      query.orderBy('created_at', 'DESC');
+      query
+        .orderBy('created_at', 'DESC')
+        .orderBy('id', 'desc');
     }
 
     switch (order) {
       case 'new':
-        query.orderBy('created_at', 'DESC');
+        query
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
       case 'hot':
         query
           .orderBy('like_count', 'DESC')
-          .orderBy('created_at', 'DESC');
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
       case 'm_view':
         query
           .orderBy('view_count', 'DESC')
-          .orderBy('created_at', 'DESC');
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
       case 'm_comment':
         query
           .orderBy('comment_count', 'DESC')
-          .orderBy('created_at', 'DESC');
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
       default:
         query
           .orderBy('like_count', 'DESC')
-          .orderBy('created_at', 'DESC');
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
         break;
     }
 
@@ -209,7 +219,7 @@ class Forum {
         throw new Error(err);
       })
   }
-  
+
   getPrefix(forumId) {
     return Db
       .tc_forum_prefixes
