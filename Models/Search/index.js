@@ -3,19 +3,61 @@
  */
 'use strict';
 const Db = require('trendclear-database').Models;
+const knex = require('trendclear-database').knex;
+const Promise = require('bluebird');
+const connectionType = require('trendclear-database').connectionConfig;
 const _ = require('lodash');
 
 class Search {
-  listByQuery (query, page = 0, user) {
+  listByQuery (query, page = 0, order, user) {
     const limit = 10;
-
     const array = query.split(' ');
+
+    let hotQuery;
+    if (connectionType.client === 'mysql') {
+      hotQuery = 'ROUND(LOG(GREATEST(like_count, 1)) + (UNIX_TIMESTAMP(tc_posts.created_at) - UNIX_TIMESTAMP())/45000, 7) as hot';
+    } else if (connectionType.client === 'postgresql') {
+      hotQuery = 'LOG(GREATEST(like_count, 1)) + extract(EPOCH FROM age(tc_posts.created_at, now()))/45000 as hot';
+    }
 
     let q = Db
       .tc_posts
       .query()
+      .select('*', knex.raw(hotQuery))
       .where('deleted', false)
       .andWhere('title', 'like', '%' + query + '%');
+
+    switch (order) {
+      case 'new':
+        q
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
+        break;
+      case 'hot':
+        q
+          .orderBy('hot', 'DESC')
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
+        break;
+      case 'm_view':
+        q
+          .orderBy('view_count', 'DESC')
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
+        break;
+      case 'm_comment':
+        q
+          .orderBy('comment_count', 'DESC')
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
+        break;
+      default:
+        q
+          .orderBy('hot', 'DESC')
+          .orderBy('created_at', 'DESC')
+          .orderBy('id', 'desc');
+        break;
+    }
 
     for (let index in array) {
       q = q
@@ -64,26 +106,61 @@ class Search {
       .orderBy('title')
   }
 
-  findUsersByNick(searchObj, page = 0) {
+  findUsersByNick(searchObj, user, page = 0) {
     const limit = 10;
     const type = searchObj.type;
 
     switch (type) {
       case 'manager':
         return Db
-          .tc_users
+          .tc_forum_managers
           .query()
-          .where('nick', 'like', searchObj.nick + '%')
-          .page(page, limit)
-          .orderBy('nick');
+          .where({
+            forum_id: searchObj.forumId
+          })
+          .then(managerList => {
+            const forumManagerIds = managerList.map(item => item.user_id);
 
-      case 'banUser':
-        return Db
-          .tc_users
-          .query()
-          .where('nick', 'like', searchObj.nick + '%')
-          .page(page, limit)
-          .orderBy('nick');
+            return Db
+              .tc_users
+              .query()
+              .select('id', 'nick')
+              .where('nick', 'like', searchObj.nick + '%')
+              .whereNotIn('id', forumManagerIds)
+              .page(page, limit)
+              .orderBy('nick');
+          })
+
+      case 'banList':
+
+        return Promise
+          .join(
+            Db
+              .tc_forum_managers
+              .query()
+              .where({
+                forum_id: searchObj.forumId
+              }),
+            Db
+              .tc_forum_ban_users
+              .query()
+              .where({
+                forum_id: searchObj.forumId
+              }),
+            (managerList, banList) => {
+              const banUserIds = banList.map(item => item.user_id);
+              const forumManagerIds = managerList.map(item => item.user_id);
+              const array = [].concat(banUserIds, forumManagerIds, user.id);
+
+              return Db
+                .tc_users
+                .query()
+                .where('nick', 'like', searchObj.nick + '%')
+                .whereNotIn('id', array)
+                .page(page, limit)
+                .orderBy('nick');
+            }
+          );
 
       default:
         return Db

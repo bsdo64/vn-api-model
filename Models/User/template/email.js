@@ -249,8 +249,6 @@ td[class="spechide"]
                                         <p  style='font-family:Georgia,Time,sans-serif;text-align:left;color:#000;font-size:12px;font-weight:normal;line-height:20px;'>
                                           <span style='font-weight:bold;'>베나클 Venacle</span>
                                           <br>
-                                          서울특별시 강서구 화곡동 강서로8길 174
-                                          <br>
                                           <a target='_blank' href="http://www.venacle.com">메인으로 가기 ></a><br>
                                         </p>
                                       </div>

@@ -150,7 +150,7 @@ class User {
         return RedisCli.set('sess:' + sessionId, result);
       })
       .then(function () {
-        var transporter = nodemailer.createTransport('smtps://bsdo64%40gmail.com:dkbs13579@smtp.gmail.com');
+        var transporter = nodemailer.createTransport('smtps://webmaster%40venacle.com:dkbs!@13579@smtp.gmail.com');
 
         var mailOptions = {
           from: '"베나클" <bsdo64@gmail.com>', // sender address
