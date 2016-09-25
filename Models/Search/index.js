@@ -9,6 +9,26 @@ const connectionType = require('trendclear-database').connectionConfig;
 const _ = require('lodash');
 
 class Search {
+  listForumByQuery (query, page = 0, order, user) {
+    const limit = 10;
+    const array = query.split(' ');
+    const q = Db
+      .tc_forums
+      .query();
+
+    for (let index in array) {
+      q
+        .orWhere('title', 'like', '%' + array[index] + '%')
+        .orWhere('sub_header', 'like', '%' + array[index] + '%')
+        .orWhere('description', 'like', '%' + array[index] + '%')
+
+    }
+
+    return q
+      .eager('[creator]')
+      .page(page, limit)
+  }
+
   listByQuery (query, page = 0, order, user) {
     const limit = 10;
     const array = query.split(' ');
