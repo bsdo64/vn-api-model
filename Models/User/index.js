@@ -557,6 +557,13 @@ class User {
                 .query()
                 .delete()
                 .where('post_id', '=', typeId)
+                .then(() => {
+                  return M
+                    .tc_forums
+                    .query()
+                    .decrement('post_count', 1)
+                    .where({id: deletedItem.forum_id})
+                })
             }
 
             return false;

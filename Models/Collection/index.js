@@ -90,6 +90,18 @@ class Collection {
             .query()
             .where('id', collectionForum.forum_id)
             .first()
+            .then(forum => {
+              return forum
+                .$query()
+                .increment('subs_count', 1)
+                .then(affected => {
+                  if (affected) {
+                    return forum;
+                  } else {
+                    return null;
+                  }
+                })
+            })
         } else {
           return null
         }
@@ -103,6 +115,16 @@ class Collection {
       .where({
         forum_id: forumId,
         collection_id: collectionId
+      })
+      .then(result => {
+        return Db
+          .tc_forums
+          .query()
+          .decrement('subs_count', 1)
+          .where({id: forumId})
+          .then(() => {
+            return result;
+          })
       })
   }
 }

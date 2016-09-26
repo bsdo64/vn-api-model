@@ -292,11 +292,18 @@ class Forum {
       .relate(followObj.forumId)
       .then(forumId => {
 
-        if (forumId) {
-          return {forum_id: forumId, user_id: user.id};
-        } else {
-          return null;
-        }
+        return Db
+          .tc_forums
+          .query()
+          .increment('follow_count', 1)
+          .where({id: forumId})
+          .then(() => {
+            if (forumId) {
+              return {forum_id: forumId, user_id: user.id};
+            } else {
+              return null;
+            }
+          })
       })
   }
 
@@ -306,7 +313,15 @@ class Forum {
       .unrelate()
       .where('id', followObj.forum_id)
       .then(() => {
-        return followObj
+
+        return Db
+          .tc_forums
+          .query()
+          .decrement('follow_count', 1)
+          .where({id: followObj.forum_id})
+          .then(() => {
+            return followObj
+          })
       })
   }
 
@@ -330,11 +345,20 @@ class Forum {
       })
   }
 
+  deleteManager(obj) {
+    return Db
+      .tc_forum_managers
+      .query()
+      .delete()
+      .where(obj)
+  }
+
   deleteAnnounce(obj) {
     return Db
       .tc_forum_announce_posts
       .query()
-      .delete(obj);
+      .delete()
+      .where(obj)
   }
 
   addBanUser(obj) {
@@ -355,6 +379,13 @@ class Forum {
             }
           })
       })
+  }
+  deleteBanUser(obj) {
+    return Db
+      .tc_forum_ban_users
+      .query()
+      .delete()
+      .where(obj)
   }
 }
 

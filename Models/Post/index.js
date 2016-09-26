@@ -61,6 +61,11 @@ class Post {
               .then(Skill.setUsingTime(user, 'write_post'))
               .then(Trendbox.incrementPointT(user, 10))
               .then(Trendbox.incrementExp(user, 5))
+              .then(() => {
+                return forum
+                  .$query()
+                  .increment('post_count', 1)
+              })
               .then(() => post)
           })
           .then((post) => {
