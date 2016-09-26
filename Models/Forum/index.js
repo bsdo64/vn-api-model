@@ -1,6 +1,8 @@
 'use strict';
 const Db = require('trendclear-database').Models;
 const knex = require('trendclear-database').knex;
+const _ = require('lodash');
+
 const Promise = require('bluebird');
 
 function mergeByProp(array1, array2, prop) {
@@ -62,14 +64,20 @@ class Forum {
       .tc_posts
       .query()
       .select(knex.raw(`MAX(created_at) as new_created_at`), 'forum_id')
+      .where({deleted: false})
       .groupBy('forum_id')
-      .orderBy('new_created_at')
+      .orderBy('new_created_at', 'desc')
       .then(forumIds => {
         options.whereIn = {
           type: 'id',
           data: forumIds.map(v => {
             return v.forum_id
           })
+        };
+
+        options.rank = {
+          type: 'id',
+          data: forumIds
         };
 
         return this.getList(options)
@@ -105,7 +113,28 @@ class Forum {
       initQuery.eager(options.eager)
     }
 
-    return initQuery;
+    return initQuery
+      .then(hotForums => {
+        if (options.rank) {
+          hotForums.results = hotForums.results
+            .map(forum => {
+              forum.rank = _.findIndex(options.rank.data, {forum_id: forum.id});
+              return forum;
+            })
+            .sort(function (a, b) {
+              if (a.rank > b.rank) {
+                return 1;
+              }
+              if (a.rank < b.rank) {
+                return -1;
+              }
+              // a must be equal to b
+              return 0;
+            });
+        }
+
+        return hotForums;
+      })
   }
 
   getForumList(forumProperty, type = 'id') {
@@ -120,13 +149,9 @@ class Forum {
   }
 
   getForumInfo(forumProperty, type = 'id') {
-    const countFollows = Db.tc_user_follow_forums.query().count('*').where(knex.raw('tc_user_follow_forums.forum_id = tc_forums.id')).as('followCount');
-    const countSubs = Db.tc_collection_forums.query().count('*').where(knex.raw('tc_collection_forums.forum_id = tc_forums.id')).as('subsCount');
-
     return Db
       .tc_forums
       .query()
-      .select('tc_forums.*', countFollows, countSubs)
       .eager('[prefixes, creator.profile, announces.author, managers, bans]')
       .where({[type]: forumProperty})
       .first()

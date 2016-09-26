@@ -26,6 +26,8 @@ class Search {
 
     return q
       .eager('[creator]')
+      .orderBy('follow_count', 'desc')
+      .orderBy('subs_count', 'desc')
       .page(page, limit)
   }
 
