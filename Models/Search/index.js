@@ -134,24 +134,35 @@ class Search {
 
     switch (type) {
       case 'manager':
-        return Db
-          .tc_forum_managers
-          .query()
-          .where({
-            forum_id: searchObj.forumId
-          })
-          .then(managerList => {
-            const forumManagerIds = managerList.map(item => item.user_id);
-
-            return Db
-              .tc_users
+        return Promise
+          .join(
+            Db
+              .tc_forum_managers
               .query()
-              .select('id', 'nick')
-              .where('nick', 'like', searchObj.nick + '%')
-              .whereNotIn('id', forumManagerIds)
-              .page(page, limit)
-              .orderBy('nick');
-          })
+              .where({
+                forum_id: searchObj.forumId
+              }),
+            Db
+              .tc_forum_ban_users
+              .query()
+              .where({
+                forum_id: searchObj.forumId
+              }),
+            (managerList, banList) => {
+              const banUserIds = banList.map(item => item.user_id);
+              const forumManagerIds = managerList.map(item => item.user_id);
+              const array = [].concat(banUserIds, forumManagerIds, user.id);
+
+              return Db
+                .tc_users
+                .query()
+                .select('id', 'nick')
+                .where('nick', 'like', searchObj.nick + '%')
+                .whereNotIn('id', array)
+                .page(page, limit)
+                .orderBy('nick');
+            }
+          );
 
       case 'banList':
 

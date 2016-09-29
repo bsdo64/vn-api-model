@@ -4,6 +4,8 @@ const knex = require('trendclear-database').knex;
 const connectionType = require('trendclear-database').connectionConfig;
 const Promise = require('bluebird');
 const _ = require('lodash');
+const shortId = require('shortid');
+const moment = require('../../Util/moment');
 
 const Trendbox = require('../Trendbox');
 const Skill = require('../Skill');
@@ -30,11 +32,35 @@ class Post {
             author_id : user.id,
             created_at: new Date(),
             forum_id  : forum.id,
-            prefix_id : postObj.prefixId
+            prefix_id : postObj.prefixId,
+            width     : postObj.width,
+            height    : postObj.height,
+            link_id   : shortId.generate() + moment(new Date()).format('x'),
+            has_img   : postObj.representingImage ? postObj.representingImage.name : null
           })
           .then(function (post) {
             return Promise
               .resolve()
+              .then(() => {
+                if (postObj.postImages && postObj.postImages.length > 0) {
+                  const images = postObj.postImages.map(image => {
+                    return {
+                      name: image.name,
+                      url: image.url,
+                      width: image.width,
+                      height: image.height,
+                      post_id: post.id
+                    }
+                  });
+
+                  return post
+                    .$relatedQuery('images')
+                    .insert(images)
+
+                } else {
+                  return true;
+                }
+              })
               .then(() => {
                 if (postObj.isAnnounce) {
                   return Db

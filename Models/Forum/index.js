@@ -38,6 +38,7 @@ class Forum {
             forum_id: forum.id,
             user_id: user.id
           })
+          .then(() => this.followForum({forumId: forum.id}, user))
           .then(() => forum)
       })
   }
@@ -287,41 +288,63 @@ class Forum {
   }
 
   followForum(followObj, user) {
-    return user
-      .$relatedQuery('follow_forums')
-      .relate(followObj.forumId)
-      .then(forumId => {
+    return Db
+      .tc_user_follow_forums
+      .query()
+      .where({user_id: user.id, forum_id: followObj.forumId})
+      .first()
+      .then(followed => {
+        if (!followed) {
+          return user
+            .$relatedQuery('follow_forums')
+            .relate(followObj.forumId)
+            .then(forumId => {
 
-        return Db
-          .tc_forums
-          .query()
-          .increment('follow_count', 1)
-          .where({id: forumId})
-          .then(() => {
-            if (forumId) {
-              return {forum_id: forumId, user_id: user.id};
-            } else {
-              return null;
-            }
-          })
+              return Db
+                .tc_forums
+                .query()
+                .increment('follow_count', 1)
+                .where({id: forumId})
+                .then(() => {
+                  if (forumId) {
+                    return {forum_id: forumId, user_id: user.id};
+                  } else {
+                    return null;
+                  }
+                })
+            })
+        } else {
+          return null;
+        }
       })
   }
 
   unFollowForum(followObj, user) {
-    return user
-      .$relatedQuery('follow_forums')
-      .unrelate()
-      .where('id', followObj.forum_id)
-      .then(() => {
+    return Db
+      .tc_user_follow_forums
+      .query()
+      .where(followObj)
+      .first()
+      .then(followed => {
+        if (followed) {
+          return user
+            .$relatedQuery('follow_forums')
+            .unrelate()
+            .where('id', followObj.forum_id)
+            .then(() => {
 
-        return Db
-          .tc_forums
-          .query()
-          .decrement('follow_count', 1)
-          .where({id: followObj.forum_id})
-          .then(() => {
-            return followObj
-          })
+              return Db
+                .tc_forums
+                .query()
+                .decrement('follow_count', 1)
+                .where({id: followObj.forum_id})
+                .then(() => {
+                  return followObj
+                })
+            })
+        } else {
+          return null;
+        }
       })
   }
 
