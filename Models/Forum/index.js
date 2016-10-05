@@ -410,6 +410,13 @@ class Forum {
       .delete()
       .where(obj)
   }
+
+  validateCreate(obj) {
+    return Db
+      .tc_forums
+      .query()
+      .where({title: obj.title})
+  }
 }
 
 module.exports = new Forum();

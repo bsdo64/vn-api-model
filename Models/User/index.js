@@ -6,7 +6,14 @@ const RedisCli = require('vn-api-client').Redis;
 const ImageCli = require('vn-api-client').Image;
 
 const jwtConf = require('vn-config').api.jwt;
-const nodemailer = require('nodemailer');
+const Mailer = require('../../Util/EmailTransporter');
+const mailer = new Mailer({
+  API_KEY: null,
+  DOMAIN: null
+});
+
+const UID = require('node-uuid');
+const uaParser = require('ua-parser-js');
 const bcrypt = require('bcrypt');
 const shortId = require('shortid');
 const Promise = require('bluebird');
@@ -42,66 +49,188 @@ function hashPassword(userPassword, salt = 10) {
 
 class User {
   checkUserAuth(sessionId, token) {
-    return new Promise((resolve, reject) => {
-      RedisCli.get('sess:' + sessionId, function (err, result) {
-        var resultJS = JSON.parse(result);
+    const keyPrefix = 'sess:';
 
-        if (err) {
-          reject(err);
-        }
-        if (!resultJS) {
-          reject(new Error('Malformed sessionId'));
-        }
+    return RedisCli
+      .get(keyPrefix + sessionId)
+      .then(result => {
+        const redisJS = JSON.parse(result);
 
-        if (resultJS.token && !token) {
-          delete resultJS.token;
-
-          RedisCli
-            .set('sess:' + sessionId, JSON.stringify(resultJS))
-            .then(() => resolve(null));
+        // Redis에 Session이 없을때
+        // 1. 첫 방문
+        // 2. 전체 삭제
+        if (!redisJS) {
+          throw new Error('Malformed sessionId');
         }
 
-        function tokenVerify(token, redisToken) {
-          return token === redisToken;
+        // 브라우저에서 Session_id 가 없을때
+        // 1. 손님
+        // 2. 일부러 지운경우
+        if (redisJS.token && !token) {
+          delete redisJS.token;
+
+          return RedisCli
+            .set(keyPrefix + sessionId, JSON.stringify(redisJS))
+            .then(() => null)
         }
 
-        if (resultJS.token && token) {
-          var verifyToken = tokenVerify(token, resultJS.token);
+        // Session 과 Token 이 모두 있을때
+        // 1. 잘못된 Token
+        //    1.1 토큰 값이 잘못됨
+        //    1.2 토큰 인증값이 잘못됨
+        // 2. 로그인
+        if (redisJS.token && token) {
+          const verifyToken = token === redisJS.token;
+
           if (!verifyToken) {
-            reject(new Error('Malformed token'));
+            throw new Error('Malformed token');
           }
 
-          jsonwebtoken.verify(token, jwtConf.secret, function (jwtErr, decoded) {
-            // err
-            if (jwtErr || !decoded) {
-              reject(jwtErr);
-            }
+          return new Promise((resolve, reject) => {
+            jsonwebtoken.verify(token, jwtConf.secret, function (jwtErr, decoded) {
+              // err
+              if (jwtErr) {
+                throw reject(jwtErr);
+              }
 
-            var userObj = {
-              id: decoded.id,
-              nick: decoded.nick
-            };
-            // decoded undefined
+              if (!decoded) {
+                throw reject(jwtErr);
+              }
 
-            new User()
-              .checkUserLogin(userObj)
-              .then(function (user) {
-                if (!user) {
-                  reject(new Error('Malformed jwt payload'));
-                }
+              const userObj = {
+                id: decoded.id,
+                nick: decoded.nick
+              };
 
-                resolve(user);
+              new User()
+                .checkUserLogin(userObj)
+                .then(function (user) {
+                  if (!user) {
+                    throw reject(new Error('Malformed jwt payload'));
+                  }
 
-              })
-              .catch(err => {
-                resolve(null);
-              })
+                  resolve(user);
+                })
+            });
           });
-        } else {
-          resolve(null);
         }
       })
-    });
+      .catch(err => {
+        switch(err.name) {
+          case 'TokenExpiredError':
+            throw new Error(err);
+            break;
+
+          case 'JsonWebTokenError':
+            throw new Error(err);
+            break;
+
+          default:
+            throw new Error(err);
+        }
+      })
+  }
+  checkUUID(req, sessionId, token, user) {
+    // 1. (UserId: 1)
+    if (user) {
+      return M
+        .tc_visitors
+        .query()
+        .where({user_id: user.id})
+        .then(visitor => {
+          if (visitor.length) {
+            return M
+              .tc_visitors
+              .query()
+              .patchAndFetchById(visitor.id, {last_visit: new Date()})
+
+          } else {
+            const visitAt = new Date();
+            const ua = uaParser(req.headers['user-agent']);
+
+            return M
+              .tc_visitors
+              .query()
+              .insert({
+                uuid: UID.v4(),
+                user_id: user.id,
+                session_id: sessionId,
+                ip: req.ip,
+                browser: `${ua.browser.name}-${ua.browser.version}-${ua.browser.major}`,
+                os: `${ua.os.name}-${ua.os.version}`,
+                last_visit: visitAt,
+                first_visit: visitAt,
+              })
+          }
+        })
+    } else if (!user && sessionId) {
+      // 2. (SessionId: 1, UserId: 0)
+
+      return M
+        .tc_visitors
+        .query()
+        .where({session_id: sessionId})
+        .then(visitor => {
+          if (visitor.length) {
+            return M
+              .tc_visitors
+              .query()
+              .patchAndFetchById(visitor.id, {last_visit: new Date()})
+
+          } else {
+            const visitAt = new Date();
+            const ua = uaParser(req.headers['user-agent']);
+
+            return M
+              .tc_visitors
+              .query()
+              .insert({
+                uuid: UID.v4(),
+                user_id: null,
+                session_id: sessionId,
+                ip: req.ip,
+                browser: `${ua.browser.name}-${ua.browser.version}-${ua.browser.major}`,
+                os: `${ua.os.name}-${ua.os.version}`,
+                last_visit: visitAt,
+                first_visit: visitAt,
+              })
+          }
+        })
+
+    } else if (req.ip && !user && !sessionId) {
+      // 3. (IP: 1, SessionId: 0, UserId: 0)
+
+      return M
+        .tc_visitors
+        .query()
+        .where({ip: req.ip})
+        .then(visitor => {
+          if (visitor.length) {
+            return M
+              .tc_visitors
+              .query()
+              .patchAndFetchById(visitor.id, {last_visit: new Date()})
+
+          } else {
+            const visitAt = new Date();
+            const ua = uaParser(req.headers['user-agent']);
+
+            return M
+              .tc_visitors
+              .query()
+              .insert({
+                uuid: UID.v4(),
+                user_id: null,
+                session_id: null,
+                ip: req.ip,
+                browser: `${ua.browser.name}-${ua.browser.version}-${ua.browser.major}`,
+                os: `${ua.os.name}-${ua.os.version}`,
+                last_visit: visitAt,
+                first_visit: visitAt,
+              })
+          }
+        })
+    }
   }
   /**
    *
@@ -139,10 +268,10 @@ class User {
       });
   }
   requestEmailVerifyCode(email, sessionId) {
-    var code = Math.floor(Math.random() * 900000) + 100000;
+    const code = Math.floor(Math.random() * 900000) + 100000;
     return RedisCli.get('sess:' + sessionId)
       .then(function (result) {
-        var resultJS = JSON.parse(result);
+        const resultJS = JSON.parse(result);
         resultJS.verifyCode = code;
         return JSON.stringify(resultJS);
       })
@@ -150,35 +279,33 @@ class User {
         return RedisCli.set('sess:' + sessionId, result);
       })
       .then(function () {
-        var transporter = nodemailer.createTransport('smtps://webmaster%40venacle.com:dkbs!@13579@smtp.gmail.com');
 
-        var mailOptions = {
-          from: '"베나클" <bsdo64@gmail.com>', // sender address
+        const mailOptions = {
+          from: `"베나클" <webmaster@venacle.com>`, // sender address
           to: email, // list of receivers
           subject: '반갑습니다! 베나클 입니다. 이메일 코드를 확인해주세요', // Subject line
-          html: htmlTemplate.make(code)
+          html: htmlTemplate.signIn(code)
         };
 
-        return new Promise(function (resolve, reject) {
-          transporter.sendMail(mailOptions, function (error, info) {
-            console.log(error, info);
-            if (error) {
-              return reject(error);
-            }
-
+        return mailer
+          .setMessage(mailOptions)
+          .then(mail => {
+            return mail.send()
+          })
+          .then(result => {
+            console.log(result);
             return resolve({
               result: 'ok',
-              message: info.response
+              message: result.message
             });
           });
-        });
       });
   }
   checkVerifyCode(code, sessionId) {
     return RedisCli
       .get('sess:' + sessionId)
       .then(function (result) {
-        var resultJS = JSON.parse(result);
+        const resultJS = JSON.parse(result);
         if (parseInt(resultJS.verifyCode, 10) !== parseInt(code, 10)) {
           throw new Error('인증코드가 일치하지 않습니다');
         }
@@ -386,7 +513,7 @@ class User {
   logout(user, sessionId) {
     return RedisCli.get('sess:' + sessionId)
       .then(function (result) {
-        var resultJS = JSON.parse(result);
+        const resultJS = JSON.parse(result);
         delete resultJS.token;
 
         return JSON.stringify(resultJS);
@@ -400,7 +527,7 @@ class User {
     return RedisCli
       .get('sess:' + sessionId)
       .then(function (result) {
-        var resultJS = JSON.parse(result);
+        const resultJS = JSON.parse(result);
         console.log('checktoken with redis :', resultJS.token === token);
 
         let jwt = Promise.promisifyAll(jsonwebtoken);
@@ -434,6 +561,28 @@ class User {
       .$relatedQuery('profile')
       .update({
         avatar_img: imgObj.file.name
+      })
+      .then(function (numberOfAffectedRows) {
+        return ImageCli
+          .del('/uploaded/files/', {file: 'http://localhost:3000/image/uploaded/files/'+oldAvatarImg})
+          .then((result) => {
+            return numberOfAffectedRows;
+          })
+          .catch((err) => {
+            // remove fail
+
+            return numberOfAffectedRows;
+          })
+      });
+  }
+
+  removeAvatarImg(user) {
+    const oldAvatarImg = user.profile.avatar_img;
+
+    return user
+      .$relatedQuery('profile')
+      .patch({
+        avatar_img: null
       })
       .then(function (numberOfAffectedRows) {
         return ImageCli
@@ -584,13 +733,60 @@ class User {
       .where('id', notiObj.id)
   }
 
+  resetPassword(obj) {
+    return M
+      .tc_users
+      .query()
+      .where({email: obj.email})
+      .first()
+      .then(user => {
+        if (user) {
+          return new Promise(function (resolve, reject) {
+            const newPassword = shortId.generate();
+
+            hashPassword(newPassword, 10)
+              .then((hashPassword) => {
+                user.newPassword = newPassword;
+
+                return user
+                  .$relatedQuery('password')
+                  .patch({password: hashPassword})
+              })
+              .then(() => {
+                const mailOptions = {
+                  from: `"베나클" <webmaster@venacle.com>`, // sender address
+                  to: user.email, // list of receivers
+                  subject: '안녕하세요! 베나클 입니다. 임시 비밀번호를 확인해주세요', // Subject line
+                  html: htmlTemplate.resetPassword(user)
+                };
+
+                return mailer
+                  .setMessage(mailOptions)
+                  .then(mail => {
+                    return mail.send()
+                  })
+                  .then(result => {
+                    console.log(result);
+                    return resolve({
+                      result: 'ok',
+                      message: result.message
+                    });
+                  });
+              })
+          });
+        } else {
+          return null;
+        }
+      })
+  }
+
   static setTokenWithRedisSession(user, sessionId) {
     return new Promise((resolve, reject) => {
       jsonwebtoken.sign(user, jwtConf.secret, jwtConf.option, (err, token) => {
         return RedisCli
           .get('sess:' + sessionId)
           .then(function (result) {
-            var resultJS = JSON.parse(result);
+            const resultJS = JSON.parse(result);
             resultJS.token = token;
             return JSON.stringify(resultJS);
           })
