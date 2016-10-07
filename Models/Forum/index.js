@@ -4,6 +4,7 @@ const knex = require('trendclear-database').knex;
 const _ = require('lodash');
 
 const Promise = require('bluebird');
+const Trendbox = require('../Trendbox');
 
 function mergeByProp(array1, array2, prop) {
   let arr3 = [];
@@ -38,6 +39,8 @@ class Forum {
             forum_id: forum.id,
             user_id: user.id
           })
+          .then(Trendbox.decrementPointT(user, 100))
+          .then(Trendbox.incrementExp(user, 30))
           .then(() => this.followForum({forumId: forum.id}, user))
           .then(() => forum)
       })
@@ -241,7 +244,7 @@ class Forum {
       .eager('[prefix, author.[icon,profile], forum]')
       .page(page, 10)
       .catch(function (err) {
-        console.log(3);
+
         throw new Error(err);
       })
   }
@@ -252,7 +255,7 @@ class Forum {
       .query()
       .where('forum_id', '=', forumId)
       .catch(function (err) {
-        console.log(4);
+
         throw new Error(err);
       })
   }

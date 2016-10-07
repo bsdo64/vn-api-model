@@ -104,8 +104,11 @@ class Trendbox {
 
   }
 
-  decrementPointT() {
-
+  decrementPointT(user, point) {
+    return () =>
+      user
+        .$relatedQuery('trendbox')
+        .decrement('T', point)
   }
 
   decrementPointR() {

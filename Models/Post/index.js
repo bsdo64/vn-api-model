@@ -14,6 +14,44 @@ class Post {
   constructor() {
     this.Db = Db;
     this.knex = knex;
+    this.defaultOptions = {
+      onlyOne: false,
+      where: null,
+      eager: null,
+      orderBy: null
+    }
+  }
+
+  _createEagerExpression(list) {
+    return `[${list.toString()}]`
+  }
+
+  _mergeQueryOptions(options) {
+    return _.assign({}, this.defaultOptions, options);
+  }
+
+  findOne(options, user) {
+    const Q = Db.tc_posts.query();
+    const queryOptions = this._mergeQueryOptions(options);
+
+    if (queryOptions.where) {
+      Q.where(queryOptions.where);
+    }
+
+    if (queryOptions.eager) {
+      Q.eager(this._createEagerExpression(queryOptions.eager));
+    }
+
+    if (queryOptions.orderBy) {
+      Q.orderBy(queryOptions.orderBy.column, queryOptions.orderBy.type);
+    }
+
+    if (queryOptions.onlyOne) {
+      Q.first();
+    }
+
+    return Q
+
   }
 
   submitPost (postObj, user, query) {
@@ -465,22 +503,27 @@ class Post {
       })
   }
 
-  incrementView(prop, user) {
+  incrementView(prop, visitor) {
+
     let query = Db
       .tc_post_views
       .query()
-      .where({user_id: user ? user.id : null, post_id: prop.postId, ip: prop.ip});
-
+      .where({
+        visitor_uid: visitor.uuid,
+        post_id: prop.postId
+      })
+      .first();
 
     return query
-      .first()
       .then((view) => {
+        const visitAt = new Date();
+
         if (view) {
           return Db
             .tc_post_views
             .query()
-            .update({updated_at: new Date()})
-            .where({user_id: user ? user.id : null, post_id: prop.postId, ip: prop.ip})
+            .update({updated_at: visitAt})
+            .where({visitor_uid: visitor.uuid})
         } else {
           return Db
             .tc_posts
@@ -490,7 +533,7 @@ class Post {
             .then(() => Db
               .tc_post_views
               .query()
-              .insert({user_id: user ? user.id : null, post_id: prop.postId, ip: prop.ip, view_at: new Date(), updated_at: new Date()})
+              .insert({visitor_uid: visitor.uuid, post_id: prop.postId, view_at: visitAt, updated_at: visitAt})
             )
         }
       })

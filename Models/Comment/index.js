@@ -90,7 +90,7 @@ class Comment {
       .query()
       .findById(commentObj.commentId)
       .then(comment => {
-        console.log(comment);
+
         return Db
           .tc_likes
           .query()

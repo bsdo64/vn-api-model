@@ -1,16 +1,13 @@
 'use strict';
 const M = require('trendclear-database').Models;
 const knex = require('trendclear-database').knex;
+const _ = require('lodash');
 
 const RedisCli = require('vn-api-client').Redis;
 const ImageCli = require('vn-api-client').Image;
 
 const jwtConf = require('vn-config').api.jwt;
 const Mailer = require('../../Util/EmailTransporter');
-const mailer = new Mailer({
-  API_KEY: null,
-  DOMAIN: null
-});
 
 const UID = require('node-uuid');
 const uaParser = require('ua-parser-js');
@@ -132,105 +129,166 @@ class User {
   }
   checkUUID(req, sessionId, token, user) {
     // 1. (UserId: 1)
-    if (user) {
-      return M
-        .tc_visitors
-        .query()
-        .where({user_id: user.id})
+    const visitAt = new Date();
+    const ua = uaParser(req.headers['user-agent']);
+    const deviceObj = {
+      session_id: sessionId,
+      ip: req.ip,
+      browser: `${ua.browser.name}-${ua.browser.version}-${ua.browser.major}`,
+      os: `${ua.os.name}-${ua.os.version}`
+    };
+
+    return new Promise((resolve, reject) => {
+      resolve(true);
+    })
+    .then(() => {
+      if (user) {
+
+        return M
+          .tc_visitors
+          .query()
+          .eager('[devices]')
+          .where({user_id: user.id})
+          .first()
+          .then(visitor => {
+
+            if (visitor) {
+              const device = _.find(visitor.devices, deviceObj);
+
+              deviceObj.visitor_uid = visitor.uuid;
+
+              if (device) {
+
+                return device
+                  .$query()
+                  .patchAndFetchById(device.id, {last_visit: visitAt})
+
+              } else {
+
+                deviceObj.first_visit = visitAt;
+                deviceObj.last_visit = visitAt;
+
+                return M
+                  .tc_visitor_devices
+                  .query()
+                  .insert(deviceObj)
+
+              }
+            } else {
+
+              return M
+                .tc_visitors
+                .query()
+                .insert({
+                  uuid: UID.v4(),
+                  user_id: user.id
+                })
+                .then(visitor => {
+
+                  deviceObj.visitor_uid = visitor.uuid;
+                  deviceObj.first_visit = visitAt;
+                  deviceObj.last_visit = visitAt;
+
+                  return M
+                    .tc_visitor_devices
+                    .query()
+                    .insert(deviceObj)
+                })
+            }
+          })
+      } else if (!user && sessionId) {
+        // 2. (SessionId: 1, UserId: 0)
+
+
+        return M
+          .tc_visitor_devices
+          .query()
+          .eager('[visitor]')
+          .where({session_id: sessionId})
+          .first()
+          .then(device => {
+
+            if (device) {
+
+              return device
+                .$query()
+                .patchAndFetchById(device.id, {last_visit: visitAt})
+
+            } else {
+
+              return M
+                .tc_visitors
+                .query()
+                .insert({
+                  uuid: UID.v4(),
+                  user_id: null
+                })
+                .then(visitor => {
+
+                  deviceObj.first_visit = visitAt;
+                  deviceObj.last_visit = visitAt;
+                  deviceObj.visitor_uid = visitor.uuid;
+
+                  return M
+                    .tc_visitor_devices
+                    .query()
+                    .insert(deviceObj)
+                })
+
+            }
+          })
+
+      } else if (req.ip && !user && !sessionId) {
+        // 3. (IP: 1, SessionId: 0, UserId: 0)
+
+        return M
+          .tc_visitor_devices
+          .query()
+          .eager('[visitor]')
+          .where({ip: req.ip})
+          .first()
+          .then(device => {
+
+            if (device) {
+
+              return device
+                .$query()
+                .patchAndFetchById(device.id, {last_visit: visitAt})
+
+            } else {
+
+              return M
+                .tc_visitors
+                .query()
+                .insert({
+                  uuid: UID.v4(),
+                  user_id: null
+                })
+                .then(visitor => {
+
+                  deviceObj.first_visit = visitAt;
+                  deviceObj.last_visit = visitAt;
+                  deviceObj.visitor_uid = visitor.uuid;
+
+                  return M
+                    .tc_visitor_devices
+                    .query()
+                    .insert(deviceObj)
+                })
+
+            }
+          })
+      }
+    })
+    .then(device => {
+      return device
+        .$relatedQuery('visitor')
+        .first()
         .then(visitor => {
-          if (visitor.length) {
-            return M
-              .tc_visitors
-              .query()
-              .patchAndFetchById(visitor.id, {last_visit: new Date()})
-
-          } else {
-            const visitAt = new Date();
-            const ua = uaParser(req.headers['user-agent']);
-
-            return M
-              .tc_visitors
-              .query()
-              .insert({
-                uuid: UID.v4(),
-                user_id: user.id,
-                session_id: sessionId,
-                ip: req.ip,
-                browser: `${ua.browser.name}-${ua.browser.version}-${ua.browser.major}`,
-                os: `${ua.os.name}-${ua.os.version}`,
-                last_visit: visitAt,
-                first_visit: visitAt,
-              })
-          }
-        })
-    } else if (!user && sessionId) {
-      // 2. (SessionId: 1, UserId: 0)
-
-      return M
-        .tc_visitors
-        .query()
-        .where({session_id: sessionId})
-        .then(visitor => {
-          if (visitor.length) {
-            return M
-              .tc_visitors
-              .query()
-              .patchAndFetchById(visitor.id, {last_visit: new Date()})
-
-          } else {
-            const visitAt = new Date();
-            const ua = uaParser(req.headers['user-agent']);
-
-            return M
-              .tc_visitors
-              .query()
-              .insert({
-                uuid: UID.v4(),
-                user_id: null,
-                session_id: sessionId,
-                ip: req.ip,
-                browser: `${ua.browser.name}-${ua.browser.version}-${ua.browser.major}`,
-                os: `${ua.os.name}-${ua.os.version}`,
-                last_visit: visitAt,
-                first_visit: visitAt,
-              })
-          }
-        })
-
-    } else if (req.ip && !user && !sessionId) {
-      // 3. (IP: 1, SessionId: 0, UserId: 0)
-
-      return M
-        .tc_visitors
-        .query()
-        .where({ip: req.ip})
-        .then(visitor => {
-          if (visitor.length) {
-            return M
-              .tc_visitors
-              .query()
-              .patchAndFetchById(visitor.id, {last_visit: new Date()})
-
-          } else {
-            const visitAt = new Date();
-            const ua = uaParser(req.headers['user-agent']);
-
-            return M
-              .tc_visitors
-              .query()
-              .insert({
-                uuid: UID.v4(),
-                user_id: null,
-                session_id: null,
-                ip: req.ip,
-                browser: `${ua.browser.name}-${ua.browser.version}-${ua.browser.major}`,
-                os: `${ua.os.name}-${ua.os.version}`,
-                last_visit: visitAt,
-                first_visit: visitAt,
-              })
-          }
-        })
-    }
+          visitor.device = device;
+          return visitor;
+        });
+    })
   }
   /**
    *
@@ -280,6 +338,8 @@ class User {
       })
       .then(function () {
 
+        const mailer = new Mailer();
+
         const mailOptions = {
           from: `"베나클" <webmaster@venacle.com>`, // sender address
           to: email, // list of receivers
@@ -288,16 +348,14 @@ class User {
         };
 
         return mailer
-          .setMessage(mailOptions)
-          .then(mail => {
-            return mail.send()
-          })
+          .init(M)
+          .then(mail => mail.setMessage(mailOptions))
+          .then(mail => mail.send())
           .then(result => {
-            console.log(result);
-            return resolve({
+            return {
               result: 'ok',
               message: result.message
-            });
+            };
           });
       });
   }
@@ -321,8 +379,6 @@ class User {
       sex: user.sex,
       birth: user.birth
     };
-
-
 
     let uCreate = {
       email: userObj.email,
@@ -398,8 +454,6 @@ class User {
               })
               .then(function () {
 
-                console.log(defaultFollowForumIds);
-
                 const query = [];
                 for (let key in defaultFollowForumIds) {
                   query.push({user_id: newUser.id, forum_id: defaultFollowForumIds[key].forum_id})
@@ -409,6 +463,16 @@ class User {
                   .tc_user_follow_forums
                   .query()
                   .insert(query)
+              })
+              .then(() => {
+                const forumIds = defaultFollowForumIds.map(forum => {
+                  return forum.forum_id
+                });
+                return M
+                  .tc_forums
+                  .query()
+                  .increment('follow_count', 1)
+                  .whereIn('id', forumIds)
               })
           })
           .then(function () {
@@ -528,7 +592,6 @@ class User {
       .get('sess:' + sessionId)
       .then(function (result) {
         const resultJS = JSON.parse(result);
-        console.log('checktoken with redis :', resultJS.token === token);
 
         let jwt = Promise.promisifyAll(jsonwebtoken);
         if (token) {
@@ -753,6 +816,9 @@ class User {
                   .patch({password: hashPassword})
               })
               .then(() => {
+
+                const mailer = new Mailer();
+
                 const mailOptions = {
                   from: `"베나클" <webmaster@venacle.com>`, // sender address
                   to: user.email, // list of receivers
@@ -761,12 +827,10 @@ class User {
                 };
 
                 return mailer
-                  .setMessage(mailOptions)
-                  .then(mail => {
-                    return mail.send()
-                  })
+                  .init(M)
+                  .then(mail => mail.setMessage(mailOptions))
+                  .then(mail => mail.send())
                   .then(result => {
-                    console.log(result);
                     return resolve({
                       result: 'ok',
                       message: result.message
