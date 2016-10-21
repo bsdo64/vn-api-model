@@ -187,7 +187,7 @@ class Post {
     return Db
       .tc_posts
       .query()
-      .eager('[likes, prefix, author.[icon.iconDef, profile, trendbox], forum, tags]')
+      .eager('[likes, prefix, author.[icon.iconDef, profile, trendbox], forum, tags, venalinks]')
       .where('id', '=' ,postId)
       .first()
       .then(post => {
@@ -288,7 +288,7 @@ class Post {
           .whereIn('id', likePostsIds)
           .andWhere('deleted', false)
           .orderBy('created_at', 'DESC')
-          .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
+          .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks]')
           .then((posts) => {
 
 
@@ -332,7 +332,7 @@ class Post {
       .tc_posts
       .query()
       .select('*', knex.raw(hotQuery))
-      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
+      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks]')
       .where('deleted', false);
 
     if (forumIds) {
@@ -549,7 +549,7 @@ class Post {
       .where('deleted', false)
       .page(page, 10)
       .orderBy('created_at', 'DESC')
-      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
+      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks]')
       .then((posts) => {
 
         if (user) {
@@ -597,7 +597,7 @@ class Post {
           .whereIn('id', mappedArray)
           .page(page, 10)
           .orderBy('created_at', 'DESC')
-          .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
+          .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks]')
           .then((posts) => {
 
             if (user) {

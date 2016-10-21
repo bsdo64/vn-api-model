@@ -512,7 +512,8 @@ class User {
         'collections.forums, ' +
         'follow_forums.creator.profile,' +
         'forumCreated,' +
-        'forumManaged' +
+        'forumManaged,' +
+        'inventories.items.item.attribute' +
         ']')
       .where(userObj)
       .first()
