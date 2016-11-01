@@ -14,11 +14,7 @@ class Venalink {
 
   findActiveVenalink(venalinkObj) {
     return co(function* () {
-      const venalinks = yield M
-        .tc_venalinks
-        .query()
-        .where('terminate_at', '>', new Date());
-
+      return yield M.tc_venalinks.query().where('terminate_at', '>', new Date());
     })
   }
 
