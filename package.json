@@ -7,6 +7,7 @@
     "bcrypt": "^0.8.5",
     "bluebird": "^3.3.5",
     "body-parser": "^1.15.0",
+    "co": "^4.6.0",
     "cookie": "^0.3.1",
     "cookie-parser": "^1.4.1",
     "deep-assign": "^2.0.0",
@@ -24,7 +25,8 @@
     "trendclear-database": "github:bsdo64/trendclear-database#vstore",
     "ua-parser-js": "^0.7.10",
     "vn-api-client": "^1.0.1",
-    "vn-config": "github:bsdo64/vn-config"
+    "vn-config": "github:bsdo64/vn-config",
+    "xoauth2": "^1.2.0"
   },
   "devDependencies": {
     "morgan": "^1.7.0"

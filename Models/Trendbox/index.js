@@ -17,8 +17,11 @@ class Trendbox {
         .increment('T', point)
   }
 
-  incrementPointR() {
-
+  incrementPointR(user, point) {
+    return () =>
+      user
+        .$relatedQuery('trendbox')
+        .increment('R', point)
   }
 
   incrementExp(user, point) {

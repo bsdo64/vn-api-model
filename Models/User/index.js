@@ -797,6 +797,15 @@ class User {
       .where('id', notiObj.id)
   }
 
+  getPointAccount(user) {
+    return M
+      .tc_user_point_accounts
+      .query()
+      .eager('[trade]')
+      .where({user_id: user.id})
+      .orderBy('created_at', 'DESC')
+  }
+
   resetPassword(obj) {
     return M
       .tc_users

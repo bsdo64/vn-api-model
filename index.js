@@ -13,5 +13,7 @@ module.exports.Search = require('./Models/Search');
 module.exports.Skill = require('./Models/Skill');
 module.exports.Trendbox = require('./Models/Trendbox');
 module.exports.User = require('./Models/User');
+module.exports.VenacleStore = require('./Models/VenacleStore');
+module.exports.Venalink = require('./Models/Venalink');
 
 module.exports = require('./Models');

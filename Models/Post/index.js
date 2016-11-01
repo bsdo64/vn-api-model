@@ -54,6 +54,26 @@ class Post {
 
   }
 
+  findOneByVenalinkUid(linkId, options, user) {
+    const Q = Db.tc_user_has_venalinks.query();
+
+    if (linkId) {
+      Q.where({venalink_uid: linkId}).eager('[venalink]').first();
+    }
+
+    return Q
+      .then(userVenalink => {
+        if (userVenalink) {
+
+          options.where = {id: userVenalink.venalink.post_id};
+
+          return this.findOne(options, user)
+        } else {
+          return null
+        }
+      })
+  }
+
   submitPost (postObj, user, query) {
     return Db
       .tc_forums
@@ -187,7 +207,8 @@ class Post {
     return Db
       .tc_posts
       .query()
-      .eager('[likes, prefix, author.[icon.iconDef, profile, trendbox], forum, tags, venalinks]')
+      .eager('[likes, prefix, author.[icon.iconDef, profile, trendbox], forum, tags, venalinks.participants]')
+      .filterEager('venalinks', builder => builder.where('terminate_at', '>', new Date()).first())
       .where('id', '=' ,postId)
       .first()
       .then(post => {
@@ -288,7 +309,8 @@ class Post {
           .whereIn('id', likePostsIds)
           .andWhere('deleted', false)
           .orderBy('created_at', 'DESC')
-          .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks]')
+          .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks.participants]')
+          .filterEager('venalinks', builder => builder.where('terminate_at', '>', new Date()).first())
           .then((posts) => {
 
 
@@ -332,7 +354,8 @@ class Post {
       .tc_posts
       .query()
       .select('*', knex.raw(hotQuery))
-      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks]')
+      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks.participants]')
+      .filterEager('venalinks', builder => builder.where('terminate_at', '>', new Date()).first())
       .where('deleted', false);
 
     if (forumIds) {
@@ -549,7 +572,8 @@ class Post {
       .where('deleted', false)
       .page(page, 10)
       .orderBy('created_at', 'DESC')
-      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks]')
+      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks.participants]')
+      .filterEager('venalinks', builder => builder.where('terminate_at', '>', new Date()).first())
       .then((posts) => {
 
         if (user) {
@@ -597,7 +621,8 @@ class Post {
           .whereIn('id', mappedArray)
           .page(page, 10)
           .orderBy('created_at', 'DESC')
-          .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks]')
+          .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks.participants]')
+          .filterEager('venalinks', builder => builder.where('terminate_at', '>', new Date()).first())
           .then((posts) => {
 
             if (user) {

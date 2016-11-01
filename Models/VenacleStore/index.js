@@ -134,7 +134,8 @@ class VenacleStore {
     .then(() => {
       return Promise.join(
         M.tc_user_point_accounts.query().first().where({user_id: user.id, point_type: 'TP'}).orderBy('created_at', 'DESC'),
-        M.tc_user_inventories.query().eager('[items.item.attribute]').where({user_id: user.id, type: 'community'}).first()
+        M.tc_user_inventories.query().eager('[items.item.attribute]').where({user_id: user.id, type: 'community'}).first(),
+        M.tc_user_trendboxes.query().where({user_id: user.id}).first()
       )
     })
     .catch((err) => {
