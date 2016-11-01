@@ -12,6 +12,12 @@ const Trendbox = require('../Trendbox');
 
 class Venalink {
 
+  findAll() {
+    return co(function* () {
+      return yield M.tc_venalinks.query();
+    })
+  }
+
   findActiveVenalink(venalinkObj) {
     return co(function* () {
       return yield M.tc_venalinks.query().where('terminate_at', '>', new Date());
