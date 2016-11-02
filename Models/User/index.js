@@ -522,7 +522,7 @@ class User {
         `select "tc_user_notifications".*, "tc_posts"."id", "tc_posts"."title"
         from "tc_user_notifications"
         LEFT JOIN "tc_posts" ON "tc_posts"."id" = "tc_user_notifications"."target_id"
-        WHERE "tc_user_notifications"."user_id" = (2)	;`
+        WHERE "tc_user_notifications"."user_id" = (2)	;`;
 
         return findUser
           .$relatedQuery('notifications')

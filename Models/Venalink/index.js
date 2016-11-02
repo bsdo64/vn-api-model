@@ -28,7 +28,7 @@ class Venalink {
     const findInventory = user.inventories.find(inventory => inventory.type === 'community');
 
     return co(function* () {
-      const [venalinkItem, venalink] = yield [
+      const [venalinkItem, activeVenalink] = yield [
         M
           .tc_items
           .query()
@@ -43,6 +43,7 @@ class Venalink {
             post_id: venalinkObj.post_id
           })
           .andWhere('terminate_at', '<', new Date())
+          .andWhere({is_activate: true})
           .first()
       ];
 
@@ -50,7 +51,7 @@ class Venalink {
         return yield Promise.resolve(false);
       }
 
-      if (venalink) {
+      if (activeVenalink) {
         return yield Promise.resolve(false);
       }
 
@@ -168,6 +169,12 @@ class Venalink {
                 .tc_user_trendboxes
                 .query()
                 .where({user_id: user.id})
+                .first(),
+              M
+                .tc_user_inventories
+                .query()
+                .eager('[items.item.attribute]')
+                .where({user_id: user.id, type: 'community'})
                 .first()
             ];
 
@@ -330,15 +337,17 @@ class Venalink {
         .first();
 
       const venalink = userVenalink.venalink;
-
       return yield venalink
         .$query()
         .patch({
           total_pay_r: venalink.total_pay_r + venalink.pay_per_click_r,
           total_remain_r: venalink.total_remain_r - venalink.pay_per_click_r
         })
-        .then(venalink => {
-          return Trendbox.incrementPointR(userVenalink.user, 5)()
+        .then(() => {
+          return userVenalink.$query().patch({
+            paid_r: userVenalink.paid_r + venalink.pay_per_click_r,
+            count_visitor: userVenalink.count_visitor + 1,
+          })
         })
         .then(() => {
           return userVenalink.user;

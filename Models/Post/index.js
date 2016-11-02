@@ -601,7 +601,7 @@ class Post {
   myWriteCommentPostList(page = 0, user) {
     const knex = Db.tc_posts.knex();
 
-    `select tc_posts.id from tc_posts inner join tc_comments on tc_posts.id=tc_comments.post_id where tc_comments.author_id=(2) group by tc_posts.id`
+    `select tc_posts.id from tc_posts inner join tc_comments on tc_posts.id=tc_comments.post_id where tc_comments.author_id=(2) group by tc_posts.id`;
 
     return Db
       .tc_posts

@@ -29,7 +29,7 @@ class MailTransporter {
 
         console.log(siteValues);
 
-        self.oauth = siteValues.reduce((object, element, index) => {
+        self.oauth = siteValues.reduce((object, element) => {
           object[element.key] = element.value;
           return object;
         }, {});
@@ -62,7 +62,7 @@ class MailTransporter {
   }
 
   setMessage(data) {
-    return new P((res, rej) => {
+    return new P((res) => {
       this.mailOptions = data;
 
       return res(this);
