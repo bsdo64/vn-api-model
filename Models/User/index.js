@@ -1,6 +1,5 @@
 'use strict';
-const M = require('trendclear-database').Models;
-const knex = require('trendclear-database').knex;
+const ModelClass = require('../../Util/Helper/Class');
 const _ = require('lodash');
 
 const RedisCli = require('vn-api-client').Redis;
@@ -44,7 +43,7 @@ function hashPassword(userPassword, salt = 10) {
   })
 }
 
-class User {
+class User extends ModelClass {
   checkUserAuth(sessionId, token) {
     const keyPrefix = 'sess:';
 
@@ -84,7 +83,7 @@ class User {
           }
 
           return new Promise((resolve, reject) => {
-            jsonwebtoken.verify(token, jwtConf.secret, function (jwtErr, decoded) {
+            jsonwebtoken.verify(token, jwtConf.secret, (jwtErr, decoded) => {
               // err
               if (jwtErr) {
                 throw reject(jwtErr);
@@ -99,8 +98,7 @@ class User {
                 nick: decoded.nick
               };
 
-              new User()
-                .checkUserLogin(userObj)
+              this.checkUserLogin(userObj)
                 .then(function (user) {
                   if (!user) {
                     throw reject(new Error('Malformed jwt payload'));
@@ -144,7 +142,7 @@ class User {
     .then(() => {
       if (user) {
 
-        return M
+        return this.Db
           .tc_visitors
           .query()
           .eager('[devices]')
@@ -168,7 +166,7 @@ class User {
                 deviceObj.first_visit = visitAt;
                 deviceObj.last_visit = visitAt;
 
-                return M
+                return this.Db
                   .tc_visitor_devices
                   .query()
                   .insert(deviceObj)
@@ -176,7 +174,7 @@ class User {
               }
             } else {
 
-              return M
+              return this.Db
                 .tc_visitors
                 .query()
                 .insert({
@@ -189,7 +187,7 @@ class User {
                   deviceObj.first_visit = visitAt;
                   deviceObj.last_visit = visitAt;
 
-                  return M
+                  return this.Db
                     .tc_visitor_devices
                     .query()
                     .insert(deviceObj)
@@ -200,7 +198,7 @@ class User {
         // 2. (SessionId: 1, UserId: 0)
 
 
-        return M
+        return this.Db
           .tc_visitor_devices
           .query()
           .eager('[visitor]')
@@ -216,7 +214,7 @@ class User {
 
             } else {
 
-              return M
+              return this.Db
                 .tc_visitors
                 .query()
                 .insert({
@@ -229,7 +227,7 @@ class User {
                   deviceObj.last_visit = visitAt;
                   deviceObj.visitor_uid = visitor.uuid;
 
-                  return M
+                  return this.Db
                     .tc_visitor_devices
                     .query()
                     .insert(deviceObj)
@@ -241,7 +239,7 @@ class User {
       } else if (req.ip && !user && !sessionId) {
         // 3. (IP: 1, SessionId: 0, UserId: 0)
 
-        return M
+        return this.Db
           .tc_visitor_devices
           .query()
           .eager('[visitor]')
@@ -257,7 +255,7 @@ class User {
 
             } else {
 
-              return M
+              return this.Db
                 .tc_visitors
                 .query()
                 .insert({
@@ -270,7 +268,7 @@ class User {
                   deviceObj.last_visit = visitAt;
                   deviceObj.visitor_uid = visitor.uuid;
 
-                  return M
+                  return this.Db
                     .tc_visitor_devices
                     .query()
                     .insert(deviceObj)
@@ -298,10 +296,10 @@ class User {
    * @returns {Promise.<T>}
    */
   checkEmailDup(email) {
-    return M
+    return this.Db
       .tc_users
       .query()
-      .where('email', email)
+      .where('email', 'ilike', `%${email}%`)
       .count('id as dup')
       .first()
       .then(function (dup) {
@@ -312,10 +310,10 @@ class User {
       });
   }
   checkNickDup(nick) {
-    return M
+    return this.Db
       .tc_users
       .query()
-      .where('nick', nick)
+      .where('nick', 'ilike', `%${nick}%`)
       .count('id as dup')
       .first()
       .then(function (dup) {
@@ -336,7 +334,7 @@ class User {
       .then(function (result) {
         return RedisCli.set('sess:' + sessionId, result);
       })
-      .then(function () {
+      .then(() => {
 
         const mailer = new Mailer();
 
@@ -348,7 +346,7 @@ class User {
         };
 
         return mailer
-          .init(M)
+          .init(this.Db)
           .then(mail => mail.setMessage(mailOptions))
           .then(mail => mail.send())
           .then(result => {
@@ -400,66 +398,66 @@ class User {
       .then((hashPassword) => {
         uCreate.password.password = hashPassword;
 
-        return M
+        return this.Db
           .tc_users
           .query()
           .insertWithRelated(uCreate)
       })
-      .then(function (newUser) {
+      .then((newUser) => {
 
         return Promise.join(
-          M
+          this.Db
             .tc_grades
             .query()
             .where('name', '없음')
             .pick(['id']),
 
-          M
+          this.Db
             .tc_roles
             .query()
             .where('name', '회원')
             .pick(['id']),
 
-          M
+          this.Db
             .tc_skills
             .query()
             .whereIn('name', ['write_post', 'write_comment', 'write_sub_comment']),
 
-          M
+          this.Db
             .tc_forum_categories
             .query()
             .select('tc_forum_categories.forum_id')
             .join('tc_categories', 'tc_forum_categories.category_id', 'tc_categories.id'),
 
-          function (grade, role, skills, defaultFollowForumIds) {
+          (grade, role, skills, defaultFollowForumIds) => {
             return newUser
               .$relatedQuery('grade')
               .insert({
                 grade_id: grade.id
               })
               .then(() => {
-                return knex
+                return this.knex
                   .batchInsert('tc_user_skills', [
                     {level: 1, skill_id: skills[0].id, user_id: newUser.id},
                     {level: 1, skill_id: skills[1].id, user_id: newUser.id},
                     {level: 1, skill_id: skills[2].id, user_id: newUser.id},
                   ])
               })
-              .then(function () {
+              .then(() => {
                 return newUser
                   .$relatedQuery('role')
                   .insert({
                     role_id: role.id
                   })
               })
-              .then(function () {
+              .then(() => {
 
                 const query = [];
                 for (let key in defaultFollowForumIds) {
                   query.push({user_id: newUser.id, forum_id: defaultFollowForumIds[key].forum_id})
                 }
 
-                return M
+                return this.Db
                   .tc_user_follow_forums
                   .query()
                   .insert(query)
@@ -468,14 +466,14 @@ class User {
                 const forumIds = defaultFollowForumIds.map(forum => {
                   return forum.forum_id
                 });
-                return M
+                return this.Db
                   .tc_forums
                   .query()
                   .increment('follow_count', 1)
                   .whereIn('id', forumIds)
               })
           })
-          .then(function () {
+          .then(() => {
             return User.setTokenWithRedisSession({nick: uCreate.nick, id: newUser.id}, sessionId)
           })
           .then(function (token) {
@@ -499,7 +497,7 @@ class User {
       nick: user.nick
     };
 
-    return M
+    return this.Db
       .tc_users
       .query()
       .eager('[' +
@@ -550,7 +548,7 @@ class User {
       password: user.password
     };
 
-    return M
+    return this.Db
       .tc_users
       .query()
       .eager('password')
@@ -601,18 +599,18 @@ class User {
           return null
         }
       })
-      .then(function (decoded) {
+      .then(decoded => {
         if (!decoded) {
           return null
         }
 
-        return M
+        return this.Db
           .tc_users
           .query()
           .where({id: decoded.id, nick: decoded.nick})
           .first()
       })
-      .catch(function (err) {
+      .catch(err => {
         console.error(err);
         throw new Error(err);
       })
@@ -626,7 +624,7 @@ class User {
       .update({
         avatar_img: imgObj.file.name
       })
-      .then(function (numberOfAffectedRows) {
+      .then(numberOfAffectedRows => {
         return ImageCli
           .del('/uploaded/files/', {file: 'http://localhost:3000/image/uploaded/files/'+oldAvatarImg})
           .then((result) => {
@@ -648,7 +646,7 @@ class User {
       .patch({
         avatar_img: null
       })
-      .then(function (numberOfAffectedRows) {
+      .then(numberOfAffectedRows => {
         return ImageCli
           .del('/uploaded/files/', {file: 'http://localhost:3000/image/uploaded/files/'+oldAvatarImg})
           .then((result) => {
@@ -673,7 +671,7 @@ class User {
     return user
       .$relatedQuery('password')
       .first()
-      .then(function (findPassword) {
+      .then(findPassword => {
         if (!findPassword) {
           throw new Error('User not Found');
         }
@@ -730,11 +728,11 @@ class User {
             WHERE tc_likes.liker_id=tc_users.id
        ) AS like_count
     FROM tc_users`;
-    const countPost = M.tc_posts.query().count('*').where(knex.raw('tc_posts.author_id = tc_users.id')).as('postsCount');
-    const countComment = M.tc_comments.query().count('*').where(knex.raw('tc_comments.author_id = tc_users.id')).as('commentsCount');
-    const countLike = M.tc_likes.query().count('*').where(knex.raw('tc_likes.liker_id = tc_users.id')).as('likesCount');
+    const countPost = this.Db.tc_posts.query().count('*').where(this.knex.raw('tc_posts.author_id = tc_users.id')).as('postsCount');
+    const countComment = this.Db.tc_comments.query().count('*').where(this.knex.raw('tc_comments.author_id = tc_users.id')).as('commentsCount');
+    const countLike = this.Db.tc_likes.query().count('*').where(this.knex.raw('tc_likes.liker_id = tc_users.id')).as('likesCount');
 
-    return M
+    return this.Db
       .tc_users
       .query()
       .select('id', countPost, countComment, countLike)
@@ -743,7 +741,7 @@ class User {
   }
 
   reportItem(reportObj, user) {
-    return M
+    return this.Db
       .tc_user_reports
       .query()
       .insert(reportObj)
@@ -752,11 +750,11 @@ class User {
   deleteItem(deleteObj) {
     const type = deleteObj.type;
     const typeId = deleteObj.type_id;
-    return M[`tc_${type}s`]
+    return this.Db[`tc_${type}s`]
       .query()
       .patchAndFetchById(typeId, {deleted: true})
       .then(deletedItem => {
-        return M
+        return this.Db
           .tc_likes
           .query()
           .delete()
@@ -766,13 +764,13 @@ class User {
           })
           .then(() => {
             if (type === 'post') {
-              return M
+              return this.Db
                 .tc_forum_announce_posts
                 .query()
                 .delete()
                 .where('post_id', '=', typeId)
                 .then(() => {
-                  return M
+                  return this.Db
                     .tc_forums
                     .query()
                     .decrement('post_count', 1)
@@ -798,7 +796,7 @@ class User {
   }
 
   getPointAccount(user) {
-    return M
+    return this.Db
       .tc_user_point_accounts
       .query()
       .eager('[trade]')
@@ -807,14 +805,14 @@ class User {
   }
 
   resetPassword(obj) {
-    return M
+    return this.Db
       .tc_users
       .query()
       .where({email: obj.email})
       .first()
       .then(user => {
         if (user) {
-          return new Promise(function (resolve, reject) {
+          return new Promise(resolve => {
             const newPassword = shortId.generate();
 
             hashPassword(newPassword, 10)
@@ -837,7 +835,7 @@ class User {
                 };
 
                 return mailer
-                  .init(M)
+                  .init(this.Db)
                   .then(mail => mail.setMessage(mailOptions))
                   .then(mail => mail.send())
                   .then(result => {
@@ -859,15 +857,15 @@ class User {
       jsonwebtoken.sign(user, jwtConf.secret, jwtConf.option, (err, token) => {
         return RedisCli
           .get('sess:' + sessionId)
-          .then(function (result) {
+          .then(result => {
             const resultJS = JSON.parse(result);
             resultJS.token = token;
             return JSON.stringify(resultJS);
           })
-          .then(function (result) {
+          .then(result => {
             return RedisCli.set('sess:' + sessionId, result);
           })
-          .then(function (result) {
+          .then(result => {
             resolve(token);
           })
           .catch(err => {

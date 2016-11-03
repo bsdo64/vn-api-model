@@ -2,25 +2,25 @@
  * Created by dobyeongsu on 2016. 5. 24..
  */
 'use strict';
-const Db = require('trendclear-database').Models;
-const knex = require('trendclear-database').knex;
+const ModelClass = require('../../Util/Helper/Class');
+
 const Promise = require('bluebird');
 const connectionType = require('trendclear-database').connectionConfig;
 const _ = require('lodash');
 
-class Search {
+class Search extends ModelClass {
   listForumByQuery (query, page = 0, order, user) {
     const limit = 10;
-    const array = query.split(' ');
-    const q = Db
+    const array = query.toLowerCase().split(' ');
+    const q = this.Db
       .tc_forums
       .query();
 
     for (let index in array) {
       q
-        .orWhere('title', 'like', '%' + array[index] + '%')
-        .orWhere('sub_header', 'like', '%' + array[index] + '%')
-        .orWhere('description', 'like', '%' + array[index] + '%')
+        .orWhere('title', 'ilike', '%' + array[index] + '%')
+        .orWhere('sub_header', 'ilike', '%' + array[index] + '%')
+        .orWhere('description', 'ilike', '%' + array[index] + '%')
 
     }
 
@@ -33,7 +33,7 @@ class Search {
 
   listByQuery (query, page = 0, order, user) {
     const limit = 10;
-    const array = query.split(' ');
+    const array = query.toLowerCase().split(' ');
 
     let hotQuery;
     if (connectionType.client === 'mysql') {
@@ -42,12 +42,12 @@ class Search {
       hotQuery = 'LOG(GREATEST(like_count, 1)) + extract(EPOCH FROM age(tc_posts.created_at, now()))/45000 as hot';
     }
 
-    let q = Db
+    let q = this.Db
       .tc_posts
       .query()
-      .select('*', knex.raw(hotQuery))
+      .select('*', this.knex.raw(hotQuery))
       .where('deleted', false)
-      .andWhere('title', 'like', '%' + query + '%');
+      .andWhere('title', 'ilike', '%' + query + '%');
 
     switch (order) {
       case 'new':
@@ -83,9 +83,9 @@ class Search {
 
     for (let index in array) {
       q = q
-        .orWhere('content', 'like', '%' + array[index] + '%')
+        .orWhere('content', 'ilike', '%' + array[index] + '%')
         .andWhere('deleted', false)
-    }
+  }
 
     return q
       .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
@@ -94,13 +94,11 @@ class Search {
       .page(page, limit)
       .then((posts) => {
         if (user) {
-          const knex = Db.tc_posts.knex();
-
-          return Db
+          return this.Db
             .tc_posts
             .query()
             .select('tc_posts.id as postId', 'tc_likes.liker_id')
-            .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+            .join('tc_likes', 'tc_posts.id', this.knex.raw(`CAST(tc_likes.type_id as int)`))
             .andWhere('tc_likes.type', 'post')
             .andWhere('tc_likes.liker_id', user.id)
             .then(function (likeTable) {
@@ -119,11 +117,11 @@ class Search {
   findForumByQuery(query, page = 0) {
     const limit = 10;
 
-    return Db
+    return this.Db
       .tc_forums
       .query()
-      .where('title', 'like', query + '%')
-      .orWhere('description', 'like', '%' + query + '%')
+      .where('title', 'ilike', query + '%')
+      .orWhere('description', 'ilike', '%' + query + '%')
       .page(page, limit)
       .orderBy('title')
   }
@@ -136,13 +134,13 @@ class Search {
       case 'manager':
         return Promise
           .join(
-            Db
+            this.Db
               .tc_forum_managers
               .query()
               .where({
                 forum_id: searchObj.forumId
               }),
-            Db
+            this.Db
               .tc_forum_ban_users
               .query()
               .where({
@@ -153,11 +151,11 @@ class Search {
               const forumManagerIds = managerList.map(item => item.user_id);
               const array = [].concat(banUserIds, forumManagerIds, user.id);
 
-              return Db
+              return this.Db
                 .tc_users
                 .query()
                 .select('id', 'nick')
-                .where('nick', 'like', searchObj.nick + '%')
+                .where('nick', 'ilike', searchObj.nick + '%')
                 .whereNotIn('id', array)
                 .page(page, limit)
                 .orderBy('nick');
@@ -168,13 +166,13 @@ class Search {
 
         return Promise
           .join(
-            Db
+            this.Db
               .tc_forum_managers
               .query()
               .where({
                 forum_id: searchObj.forumId
               }),
-            Db
+            this.Db
               .tc_forum_ban_users
               .query()
               .where({
@@ -185,10 +183,10 @@ class Search {
               const forumManagerIds = managerList.map(item => item.user_id);
               const array = [].concat(banUserIds, forumManagerIds, user.id);
 
-              return Db
+              return this.Db
                 .tc_users
                 .query()
-                .where('nick', 'like', searchObj.nick + '%')
+                .where('nick', 'ilike', searchObj.nick + '%')
                 .whereNotIn('id', array)
                 .page(page, limit)
                 .orderBy('nick');
@@ -196,10 +194,10 @@ class Search {
           );
 
       default:
-        return Db
+        return this.Db
           .tc_users
           .query()
-          .where('nick', 'like', searchObj.nick + '%')
+          .where('nick', 'ilike', searchObj.nick + '%')
           .page(page, limit)
           .orderBy('nick')
     }

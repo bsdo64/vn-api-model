@@ -1,6 +1,6 @@
 'use strict';
-const Db = require('trendclear-database').Models;
-const knex = require('trendclear-database').knex;
+const ModelClass = require('../../Util/Helper/Class');
+
 const connectionType = require('trendclear-database').connectionConfig;
 const Promise = require('bluebird');
 const _ = require('lodash');
@@ -10,10 +10,9 @@ const moment = require('../../Util/moment');
 const Trendbox = require('../Trendbox');
 const Skill = require('../Skill');
 
-class Post {
+class Post extends ModelClass {
   constructor() {
-    this.Db = Db;
-    this.knex = knex;
+    super();
     this.defaultOptions = {
       onlyOne: false,
       where: null,
@@ -31,7 +30,7 @@ class Post {
   }
 
   findOne(options, user) {
-    const Q = Db.tc_posts.query();
+    const Q = this.Db.tc_posts.query();
     const queryOptions = this._mergeQueryOptions(options);
 
     if (queryOptions.where) {
@@ -55,7 +54,7 @@ class Post {
   }
 
   findOneByVenalinkUid(linkId, options, user) {
-    const Q = Db.tc_user_has_venalinks.query();
+    const Q = this.Db.tc_user_has_venalinks.query();
 
     if (linkId) {
       Q.where({venalink_uid: linkId}).eager('[venalink]').first();
@@ -75,13 +74,13 @@ class Post {
   }
 
   submitPost (postObj, user, query) {
-    return Db
+    return this.Db
       .tc_forums
       .query()
       .where('id', query.forumId)
       .first()
       .then(forum => {
-        return Db
+        return this.Db
           .tc_posts
           .query()
           .insert({
@@ -121,13 +120,13 @@ class Post {
               })
               .then(() => {
                 if (postObj.isAnnounce) {
-                  return Db
+                  return this.Db
                     .tc_forum_announce_posts
                     .query()
                     .where('forum_id', '=', forum.id)
                     .then(announces => {
                       if (announces.length < 5) {
-                        return Db
+                        return this.Db
                           .tc_forum_announce_posts
                           .query()
                           .insert({
@@ -161,7 +160,7 @@ class Post {
   }
 
   updatePost (postObj, user) {
-    return Db
+    return this.Db
       .tc_posts
       .query()
       .patchAndFetchById(postObj.postId, {title: postObj.title, content: postObj.content})
@@ -170,13 +169,13 @@ class Post {
           .resolve()
           .then(() => {
             if (postObj.isAnnounce) {
-              return Db
+              return this.Db
                 .tc_forum_announce_posts
                 .query()
                 .where('forum_id', '=', post.forum_id)
                 .then(announces => {
                   if (announces.length < 5) {
-                    return Db
+                    return this.Db
                       .tc_forum_announce_posts
                       .query()
                       .insert({
@@ -200,11 +199,10 @@ class Post {
   }
 
   findOneById (postId, commentPage = 0, user) {
-    const knex = Db.tc_comments.knex();
-    const limit = 10;
+    const limit = 10
     const offset = commentPage * limit;
 
-    return Db
+    return this.Db
       .tc_posts
       .query()
       .eager('[likes, prefix, author.[icon.iconDef, profile, trendbox], forum, tags, venalinks.participants]')
@@ -219,13 +217,13 @@ class Post {
             .offset(offset)
             .limit(limit)
             .eager('[subComments.author.[icon.iconDef, profile], author.[icon.iconDef, profile]]')
-            .traverse(Db.tc_comments, function (comment, parentModel, relationName) {
+            .traverse(this.Db.tc_comments, (comment, parentModel, relationName) => {
               if (user) {
-                Db
+                this.Db
                   .tc_sub_comments
                   .query()
                   .select('tc_sub_comments.id as subCommentId', 'tc_likes.liker_id')
-                  .join('tc_likes', 'tc_sub_comments.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+                  .join('tc_likes', 'tc_sub_comments.id', this.knex.raw(`CAST(tc_likes.type_id as int)`))
                   .andWhere('tc_likes.type', 'sub_comment')
                   .andWhere('tc_likes.liker_id', user.id)
                   .then(function (likeTable) {
@@ -242,11 +240,11 @@ class Post {
           .spread((total, results) => {
 
             if (user) {
-              return Db
+              return this.Db
                 .tc_posts
                 .query()
                 .select('tc_posts.id as postId', 'tc_likes.liker_id')
-                .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+                .join('tc_likes', 'tc_posts.id', this.knex.raw(`CAST(tc_likes.type_id as int)`))
                 .andWhere('tc_likes.type', 'post')
                 .andWhere('tc_likes.liker_id', user.id)
                 .then(function (likeTable) {
@@ -254,11 +252,11 @@ class Post {
                   return true
                 })
                 .then(() =>
-                  Db
+                  this.Db
                     .tc_comments
                     .query()
                     .select('tc_comments.id as commentId', 'tc_likes.liker_id')
-                    .join('tc_likes', 'tc_comments.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+                    .join('tc_likes', 'tc_comments.id', this.knex.raw(`CAST(tc_likes.type_id as int)`))
                     .andWhere('tc_likes.type', 'comment')
                     .andWhere('tc_likes.liker_id', user.id)
                     .then(function (likeTable) {
@@ -285,9 +283,7 @@ class Post {
   }
 
   likePostList (page = 0, user) {
-    const knex = Db.tc_posts.knex();
-
-    const query = Db
+    const query = this.Db
       .tc_likes
       .query()
       .where('tc_likes.type', '=', 'post')
@@ -303,7 +299,7 @@ class Post {
           results: []
         };
 
-        return Db
+        return this.Db
           .tc_posts
           .query()
           .whereIn('id', likePostsIds)
@@ -315,11 +311,11 @@ class Post {
 
 
             if (user) {
-              return Db
+              return this.Db
                 .tc_posts
                 .query()
                 .select('tc_posts.id as postId', 'tc_likes.liker_id')
-                .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+                .join('tc_likes', 'tc_posts.id', this.knex.raw(`CAST(tc_likes.type_id as int)`))
                 .andWhere('tc_likes.type', 'post')
                 .andWhere('tc_likes.liker_id', user.id)
                 .andWhere('tc_posts.deleted', false)
@@ -341,8 +337,6 @@ class Post {
   }
 
   bestPostList ({page = 0, user, forumIds, order, listType} = props) {
-    const knex = Db.tc_posts.knex();
-
     let hotQuery;
     if (connectionType.client === 'mysql') {
       hotQuery = 'ROUND(LOG(GREATEST(like_count, 1)) + (UNIX_TIMESTAMP(tc_posts.created_at) - UNIX_TIMESTAMP())/45000, 7) as hot';
@@ -350,10 +344,10 @@ class Post {
       hotQuery = 'LOG(GREATEST(like_count, 1)) + extract(EPOCH FROM age(tc_posts.created_at, now()))/45000 as hot';
     }
 
-    const query = Db
+    const query = this.Db
       .tc_posts
       .query()
-      .select('*', knex.raw(hotQuery))
+      .select('*', this.knex.raw(hotQuery))
       .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks.participants]')
       .filterEager('venalinks', builder => builder.where('terminate_at', '>', new Date()).first())
       .where('deleted', false);
@@ -403,11 +397,11 @@ class Post {
             .andWhere('deleted', false)
           ,
 
-          Db
+          this.Db
             .tc_posts
             .query()
             .select('tc_posts.id as postId', 'tc_likes.liker_id')
-            .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+            .join('tc_likes', 'tc_posts.id', this.knex.raw(`CAST(tc_likes.type_id as int)`))
             .andWhere('tc_likes.type', 'post')
             .andWhere('tc_likes.liker_id', user.id),
 
@@ -426,7 +420,7 @@ class Post {
     }
 
     if (user) {
-      return Db
+      return this.Db
         .tc_user_follow_forums
         .query()
         .where({user_id: user.id})
@@ -442,11 +436,11 @@ class Post {
               .andWhere('deleted', false)
             ,
 
-            Db
+            this.Db
               .tc_posts
               .query()
               .select('tc_posts.id as postId', 'tc_likes.liker_id')
-              .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+              .join('tc_likes', 'tc_posts.id', this.knex.raw(`CAST(tc_likes.type_id as int)`))
               .andWhere('tc_likes.type', 'post')
               .andWhere('tc_likes.liker_id', user.id),
 
@@ -464,7 +458,7 @@ class Post {
       FROM     "tc_forum_categories"
       INNER JOIN "tc_categories"  ON "tc_forum_categories"."category_id" = "tc_categories"."id"`;
 
-      return Db
+      return this.Db
         .tc_forum_categories
         .query()
         .select('tc_forum_categories.forum_id')
@@ -481,12 +475,12 @@ class Post {
   }
 
   likePost (postObj, user) {
-    return Db
+    return this.Db
       .tc_posts
       .query()
       .findById(postObj.postId)
       .then(post => {
-        return Db
+        return this.Db
           .tc_likes
           .query()
           .where({ type: 'post', type_id: post.id, liker_id: user.id})
@@ -511,7 +505,7 @@ class Post {
             }
           })
           .then((like) => {
-            const isModel = like instanceof Db.tc_likes;
+            const isModel = like instanceof this.Db.tc_likes;
             if (isModel) {
               return post
                 .$query()
@@ -528,7 +522,7 @@ class Post {
 
   incrementView(prop, visitor) {
 
-    let query = Db
+    let query = this.Db
       .tc_post_views
       .query()
       .where({
@@ -542,18 +536,18 @@ class Post {
         const visitAt = new Date();
 
         if (view) {
-          return Db
+          return this.Db
             .tc_post_views
             .query()
             .update({updated_at: visitAt})
             .where({visitor_uid: visitor.uuid})
         } else {
-          return Db
+          return this.Db
             .tc_posts
             .query()
             .where('id', '=', prop.postId)
             .increment('view_count', 1)
-            .then(() => Db
+            .then(() => this.Db
               .tc_post_views
               .query()
               .insert({visitor_uid: visitor.uuid, post_id: prop.postId, view_at: visitAt, updated_at: visitAt})
@@ -563,9 +557,7 @@ class Post {
   }
 
   myWritePostList(page = 0, user) {
-    const knex = Db.tc_posts.knex();
-
-    return Db
+    return this.Db
       .tc_posts
       .query()
       .where('author_id', user.id)
@@ -577,11 +569,11 @@ class Post {
       .then((posts) => {
 
         if (user) {
-          return Db
+          return this.Db
             .tc_posts
             .query()
             .select('tc_posts.id as postId', 'tc_likes.liker_id')
-            .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+            .join('tc_likes', 'tc_posts.id', this.knex.raw(`CAST(tc_likes.type_id as int)`))
             .andWhere('tc_likes.type', 'post')
             .andWhere('tc_likes.liker_id', user.id)
             .then(function (likeTable) {
@@ -599,11 +591,9 @@ class Post {
   }
 
   myWriteCommentPostList(page = 0, user) {
-    const knex = Db.tc_posts.knex();
-
     `select tc_posts.id from tc_posts inner join tc_comments on tc_posts.id=tc_comments.post_id where tc_comments.author_id=(2) group by tc_posts.id`;
 
-    return Db
+    return this.Db
       .tc_posts
       .query()
       .select('tc_posts.id')
@@ -615,7 +605,7 @@ class Post {
 
         const mappedArray = _.map(postsId, 'id');
 
-        return Db
+        return this.Db
           .tc_posts
           .query()
           .whereIn('id', mappedArray)
@@ -626,11 +616,11 @@ class Post {
           .then((posts) => {
 
             if (user) {
-              return Db
+              return this.Db
                 .tc_posts
                 .query()
                 .select('tc_posts.id as postId', 'tc_likes.liker_id')
-                .join('tc_likes', 'tc_posts.id', knex.raw(`CAST(tc_likes.type_id as int)`))
+                .join('tc_likes', 'tc_posts.id', this.knex.raw(`CAST(tc_likes.type_id as int)`))
                 .andWhere('tc_likes.type', 'post')
                 .andWhere('tc_likes.liker_id', user.id)
                 .then(function (likeTable) {

@@ -1,8 +1,8 @@
 'use strict';
-const Db = require('trendclear-database').Models;
+const ModelClass = require('../../Util/Helper/Class');
 const Post = require('../Post');
 
-class Collection {
+class Collection extends ModelClass {
   getUserCollections(user) {
     return user
       .$relatedQuery('collections')
@@ -15,13 +15,13 @@ class Collection {
       .eager('[forums]')
   }
   createCollection(collectionObj) {
-    return Db
+    return this.Db
       .tc_collections
       .query()
       .insert(collectionObj)
   }
   updateCollection(collectionId, collectionObj) {
-    return Db
+    return this.Db
       .tc_collections
       .query()
       .patchAndFetchById(collectionId, collectionObj)
@@ -34,13 +34,13 @@ class Collection {
   }
 
   getForums(collectionId) {
-    return Db
+    return this.Db
       .tc_collection_forums
       .query()
       .where('collection_id', collectionId)
       .then(collectionForums => {
         const collectionForumIds = collectionForums.map(value => value.forum_id);
-        return Db
+        return this.Db
           .tc_forums
           .query()
           .whereIn('id', collectionForumIds)
@@ -50,7 +50,7 @@ class Collection {
   getCollectionPosts(props) {
     const {collectionId, page, user} = props;
 
-    return Db
+    return this.Db
       .tc_collection_forums
       .query()
       .where('collection_id', collectionId)
@@ -62,7 +62,7 @@ class Collection {
   }
 
   addForum(collectionId, forumId) {
-    return Db
+    return this.Db
       .tc_collection_forums
       .query()
       .where({
@@ -74,7 +74,7 @@ class Collection {
         if (collection) {
           return null
         } else {
-          return Db
+          return this.Db
             .tc_collection_forums
             .query()
             .insert({
@@ -85,7 +85,7 @@ class Collection {
       })
       .then(collectionForum => {
         if (collectionForum) {
-          return Db
+          return this.Db
             .tc_forums
             .query()
             .where('id', collectionForum.forum_id)
@@ -108,7 +108,7 @@ class Collection {
       })
   }
   removeForum(collectionId, forumId) {
-    return Db
+    return this.Db
       .tc_collection_forums
       .query()
       .delete()
@@ -117,7 +117,7 @@ class Collection {
         collection_id: collectionId
       })
       .then(result => {
-        return Db
+        return this.Db
           .tc_forums
           .query()
           .decrement('subs_count', 1)

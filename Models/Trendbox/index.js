@@ -2,10 +2,10 @@
  * Created by dobyeongsu on 2016. 5. 24..
  */
 'use strict';
-const Db = require('trendclear-database').Models;
+const ModelClass = require('../../Util/Helper/Class');
 const Promise = require('bluebird');
 
-class Trendbox {
+class Trendbox extends ModelClass{
   static nextLevelUpFomula(N) {
     return 1.2 * Math.pow(N, 3) - 15 * Math.pow(N, 2) + 100 * N - 140;
   }
@@ -35,7 +35,7 @@ class Trendbox {
           const nextExp = trendbox.next_exp;
 
           if (currentExp >= nextExp) {
-            return new Trendbox().incrementLevel(user);
+            return this.incrementLevel(user);
           }
         })
   }
@@ -66,7 +66,7 @@ class Trendbox {
         .$relatedQuery('author')
         .first()
         .then(author => {
-          return Db
+          return this.Db
             .tc_comments
             .query()
             .where('post_id', post.id)
@@ -75,7 +75,7 @@ class Trendbox {
               if ((user.id !== author.id) &&
                   (comments.length !== 0) &&
                   (comments.length % point === 0)) {
-                return Db
+                return this.Db
                   .tc_user_trendboxes
                   .query()
                   .where('user_id', author.id)
@@ -96,7 +96,7 @@ class Trendbox {
     const nextExp = user.trendbox.next_exp;
 
     if (prevExp >= nextExp) {
-      return () => new Trendbox().incrementLevel(user);
+      return () => this.incrementLevel(user);
     } else {
       return () => {};
     }

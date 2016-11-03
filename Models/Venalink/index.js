@@ -2,41 +2,40 @@
  * Created by dobyeongsu on 2016. 5. 24..
  */
 'use strict';
-const M = require('trendclear-database').Models;
-const O = require('trendclear-database').Objection;
+const ModelClass = require('../../Util/Helper/Class');
 const Promise = require('bluebird');
 const shortId = require('shortid');
 const co = require('co');
 
 const Trendbox = require('../Trendbox');
 
-class Venalink {
+class Venalink extends ModelClass{
 
   findAll() {
-    return co(function* () {
-      return yield M.tc_venalinks.query();
+    return co.call(this, function* () {
+      return yield this.Db.tc_venalinks.query();
     })
   }
 
   findActiveVenalink(venalinkObj) {
-    return co(function* () {
-      return yield M.tc_venalinks.query().where('terminate_at', '>', new Date());
+    return co.call(this, function* () {
+      return yield this.Db.tc_venalinks.query().where('terminate_at', '>', new Date());
     })
   }
 
   checkVenalinkItem(venalinkObj, user) {
     const findInventory = user.inventories.find(inventory => inventory.type === 'community');
 
-    return co(function* () {
+    return co.call(this, function* () {
       const [venalinkItem, activeVenalink] = yield [
-        M
+        this.Db
           .tc_items
           .query()
           .where({
             title: '베나링크 활성화'
           })
           .first(),
-        M
+        this.Db
           .tc_venalinks
           .query()
           .where({
@@ -55,7 +54,7 @@ class Venalink {
         return yield Promise.resolve(false);
       }
 
-      const findInventoryItem = yield M.tc_user_inventory_items.query()
+      const findInventoryItem = yield this.Db.tc_user_inventory_items.query()
         .where({
           item_id: venalinkItem.id,
           inventory_id: findInventory.id
@@ -69,12 +68,12 @@ class Venalink {
           // activate
           console.log('activate');
 
-          const activateItem = yield M
+          const activateItem = yield this.Db
             .tc_user_inventory_items
             .query()
             .patchAndFetchById(findInventoryItem.id, {item_count: findInventoryItem.item_count - 1});
 
-          const activatedItem = yield M
+          const activatedItem = yield this.Db
             .tc_user_inventory_logs
             .query()
             .insert({
@@ -87,7 +86,7 @@ class Venalink {
               inventory_item_id: activateItem.id
             });
 
-          const trade = yield M
+          const trade = yield this.Db
             .tc_trades
             .query()
             .insert({
@@ -103,7 +102,7 @@ class Venalink {
               created_at: new Date()
             });
 
-          const beforeAccount = yield M
+          const beforeAccount = yield this.Db
             .tc_user_point_accounts
             .query()
             .where({
@@ -112,7 +111,7 @@ class Venalink {
             .orderBy('created_at', 'DESC')
             .first();
 
-          const newAccount = yield M
+          const newAccount = yield this.Db
             .tc_user_point_accounts
             .query()
             .insert({
@@ -125,7 +124,7 @@ class Venalink {
               created_at: new Date()
             });
 
-          yield M
+          yield this.Db
             .tc_user_trendboxes
             .query()
             .patch({
@@ -147,10 +146,10 @@ class Venalink {
 
     })
       .then(activatedItem => {
-        return co(function* () {
+        return co.call(this, function* () {
           if (activatedItem) {
             return yield [
-              M
+              this.Db
                 .tc_venalinks
                 .query()
                 .insert({
@@ -165,12 +164,12 @@ class Venalink {
                   terminate_at: venalinkObj.terminate_at,
                   user_id: user.id
                 }),
-              M
+              this.Db
                 .tc_user_trendboxes
                 .query()
                 .where({user_id: user.id})
                 .first(),
-              M
+              this.Db
                 .tc_user_inventories
                 .query()
                 .eager('[items.item.attribute]')
@@ -189,14 +188,14 @@ class Venalink {
   }
 
   activateVenalink() {
-    return M
+    return this.Db
       .tc_items
       .query()
       .eager('[attribute]')
   }
 
   activatedVenalinkList(user) {
-    return M
+    return this.Db
       .tc_venalinks
       .query()
       .where({user_id: user.id})
@@ -204,7 +203,7 @@ class Venalink {
   }
 
   participatedVenalinkList(user) {
-    return M
+    return this.Db
       .tc_user_has_venalinks
       .query()
       .where({user_id: user.id})
@@ -214,16 +213,16 @@ class Venalink {
   checkVenalinkParticipate(venalinkObj, user) {
     const findInventory = user.inventories.find(inventory => inventory.type === 'community');
 
-    return co(function* () {
+    return co.call(this, function* () {
       const [venalinkParticipateItem, venalink, isParticipated] = yield [
-        M
+        this.Db
           .tc_items
           .query()
           .where({
             title: '베나링크 참여권'
           })
           .first(),
-        M
+        this.Db
           .tc_venalinks
           .query()
           .where({
@@ -232,7 +231,7 @@ class Venalink {
           .andWhere('terminate_at', '>', venalinkObj.request_at)
           .first(),
 
-        M
+        this.Db
           .tc_user_has_venalinks
           .query()
           .where({user_id: user.id, venalink_id: venalinkObj.venalink_id})
@@ -251,7 +250,7 @@ class Venalink {
         return yield Promise.resolve(false);
       }
 
-      const findInventoryItem = yield M
+      const findInventoryItem = yield this.Db
         .tc_user_inventory_items
         .query()
         .where({
@@ -266,12 +265,12 @@ class Venalink {
           // activate
           console.log('activate');
 
-          const patchedItem = yield M
+          const patchedItem = yield this.Db
             .tc_user_inventory_items
             .query()
             .patchAndFetchById(findInventoryItem.id, {item_count: findInventoryItem.item_count - 1});
 
-          return M
+          return this.Db
             .tc_user_inventory_logs
             .query()
             .insert({
@@ -294,10 +293,10 @@ class Venalink {
 
     })
       .then(logItem => {
-        return co(function* () {
+        return co.call(this, function* () {
           if (logItem) {
             return yield [
-              M
+              this.Db
                 .tc_user_has_venalinks
                 .query()
                 .insert({
@@ -307,7 +306,7 @@ class Venalink {
                   request_at: venalinkObj.request_at,
                   user_id: user.id
                 }),
-              M
+              this.Db
                 .tc_user_inventories
                 .query()
                 .eager('[items.item.attribute]')
@@ -326,8 +325,8 @@ class Venalink {
   }
 
   payParticipantR(venalinkUid, user) {
-    return co(function* () {
-      const userVenalink = yield M
+    return co.call(this, function* () {
+      const userVenalink = yield this.Db
         .tc_user_has_venalinks
         .query()
         .where({
@@ -361,7 +360,7 @@ class Venalink {
       return Promise.reject(new Error('no post'));
     }
 
-    return M
+    return this.Db
       .tc_venalink_click_logs
       .query()
       .where({
@@ -385,7 +384,7 @@ class Venalink {
       user_id: user ? user.id : null
     };
 
-    return M
+    return this.Db
       .tc_venalink_click_logs
       .query()
       .insert(log);

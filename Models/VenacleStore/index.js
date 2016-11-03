@@ -2,29 +2,28 @@
  * Created by dobyeongsu on 2016. 5. 24..
  */
 'use strict';
-const M = require('trendclear-database').Models;
-const O = require('trendclear-database').Objection;
+const ModelClass = require('../../Util/Helper/Class');
 const Promise = require('bluebird');
 const shortId = require('shortid');
 
-class VenacleStore {
+class VenacleStore extends ModelClass {
 
   getItems() {
-    return M
+    return this.Db
       .tc_items
       .query()
       .eager('[attribute]')
   }
 
   purchaseItem(itemObj, user) {
-    return O.transaction(
-      M.tc_items,
-      M.tc_trades,
-      M.tc_user_point_accounts,
-      M.tc_user_item_orders,
-      M.tc_user_inventory_items,
-      M.tc_user_inventory_logs,
-      M.tc_user_trendboxes,
+    return this.Objection.transaction(
+      this.Db.tc_items,
+      this.Db.tc_trades,
+      this.Db.tc_user_point_accounts,
+      this.Db.tc_user_item_orders,
+      this.Db.tc_user_inventory_items,
+      this.Db.tc_user_inventory_logs,
+      this.Db.tc_user_trendboxes,
 
       (tc_items, tc_trades,
        tc_user_point_accounts,
@@ -133,9 +132,9 @@ class VenacleStore {
       })
     .then(() => {
       return Promise.join(
-        M.tc_user_point_accounts.query().first().where({user_id: user.id, point_type: 'TP'}).orderBy('created_at', 'DESC'),
-        M.tc_user_inventories.query().eager('[items.item.attribute]').where({user_id: user.id, type: 'community'}).first(),
-        M.tc_user_trendboxes.query().where({user_id: user.id}).first()
+        this.Db.tc_user_point_accounts.query().first().where({user_id: user.id, point_type: 'TP'}).orderBy('created_at', 'DESC'),
+        this.Db.tc_user_inventories.query().eager('[items.item.attribute]').where({user_id: user.id, type: 'community'}).first(),
+        this.Db.tc_user_trendboxes.query().where({user_id: user.id}).first()
       )
     })
     .catch((err) => {

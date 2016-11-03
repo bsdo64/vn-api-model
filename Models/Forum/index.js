@@ -1,6 +1,5 @@
 'use strict';
-const Db = require('trendclear-database').Models;
-const knex = require('trendclear-database').knex;
+const ModelClass = require('../../Util/Helper/Class');
 const _ = require('lodash');
 
 const Promise = require('bluebird');
@@ -20,19 +19,15 @@ function mergeByProp(array1, array2, prop) {
   return arr3.concat(array2);
 }
 
-class Forum {
-  constructor() {
-    this.Db = Db;
-    this.knex = knex;
-  }
+class Forum extends ModelClass {
 
   createForum(forumObj, user) {
-    return Db
+    return this.Db
       .tc_forums
       .query()
       .insert(forumObj)
       .then(forum => {
-        return Db
+        return this.Db
           .tc_forum_managers
           .query()
           .insert({
@@ -47,7 +42,7 @@ class Forum {
   }
 
   patchForum(forumObj, user) {
-    return Db
+    return this.Db
       .tc_forums
       .query()
       .patchAndFetchById(forumObj.id, forumObj.body)
@@ -64,10 +59,10 @@ class Forum {
       ORDER BY
         new_created_at DESC;`;
 
-    return Db
+    return this.Db
       .tc_posts
       .query()
-      .select(knex.raw(`MAX(created_at) as new_created_at`), 'forum_id')
+      .select(this.knex.raw(`MAX(created_at) as new_created_at`), 'forum_id')
       .where({deleted: false})
       .groupBy('forum_id')
       .orderBy('new_created_at', 'desc')
@@ -89,7 +84,7 @@ class Forum {
   }
 
   getList(options) {
-    const initQuery = Db.tc_forums.query();
+    const initQuery = this.Db.tc_forums.query();
 
     options.order.direction = options.order.direction || 'DESC';
     options.limit = options.limit || 50;
@@ -142,33 +137,33 @@ class Forum {
   }
 
   getForumList(forumProperty, type = 'id') {
-    return Db
+    return this.Db
       .tc_forums
       .query()
       .eager('[prefixes, creator.profile]')
-      .where(type, 'like', `%${forumProperty}%`)
+      .where(type, 'ilike', `%${forumProperty}%`)
       .then(function (forums) {
         return forums;
       })
   }
 
   getForumInfo(forumProperty, type = 'id') {
-    return Db
+    return this.Db
       .tc_forums
       .query()
       .eager('[prefixes, creator.profile, announces.author, managers, bans]')
       .where({[type]: forumProperty})
       .first()
-      .then(function (forum) {
+      .then((forum) => {
 
         if (!forum) {
           throw Error('Forum not exist!');
         }
 
-        return Db
+        return this.Db
           .tc_forum_prefixes
           .query()
-          .select('tc_forum_prefixes.*', knex.raw('CAST(COUNT(tc_posts.id) as integer)'))
+          .select('tc_forum_prefixes.*', this.knex.raw('CAST(COUNT(tc_posts.id) as integer)'))
           .join('tc_posts', 'tc_forum_prefixes.id', 'tc_posts.prefix_id')
           .where('tc_forum_prefixes.forum_id', '=', forum.id)
           .where('tc_posts.deleted', '=', false)
@@ -188,14 +183,14 @@ class Forum {
   }
 
   getForumPostList({forumId, page = 0, forumSearch, forumPrefix, order='new'}) {
-    const query = Db
+    const query = this.Db
       .tc_posts
       .query()
       .where('forum_id', '=', forumId)
       .andWhere('deleted', false);
 
     if (forumSearch) {
-      query.where('title', 'like', '%' + forumSearch + '%');
+      query.where('title', 'ilike', '%' + forumSearch + '%');
     }
 
     if (forumPrefix) {
@@ -250,7 +245,7 @@ class Forum {
   }
 
   getPrefix(forumId) {
-    return Db
+    return this.Db
       .tc_forum_prefixes
       .query()
       .where('forum_id', '=', forumId)
@@ -261,28 +256,28 @@ class Forum {
   }
 
   addPrefix(prefixObj) {
-    return Db
+    return this.Db
       .tc_forum_prefixes
       .query()
       .insert(prefixObj)
   }
 
   updatePrefix(prefixObj) {
-    return Db
+    return this.Db
       .tc_forum_prefixes
       .query()
       .patchAndFetchById(prefixObj.id, prefixObj)
   }
 
   deletePrefix(prefixObj) {
-    return Db
+    return this.Db
       .tc_posts
       .query()
       .patch({prefix_id: null})
       .where('prefix_id', '=', prefixObj.id)
       .then(result => {
 
-        return Db
+        return this.Db
           .tc_forum_prefixes
           .query()
           .delete()
@@ -291,7 +286,7 @@ class Forum {
   }
 
   followForum(followObj, user) {
-    return Db
+    return this.Db
       .tc_user_follow_forums
       .query()
       .where({user_id: user.id, forum_id: followObj.forumId})
@@ -303,7 +298,7 @@ class Forum {
             .relate(followObj.forumId)
             .then(forumId => {
 
-              return Db
+              return this.Db
                 .tc_forums
                 .query()
                 .increment('follow_count', 1)
@@ -323,7 +318,7 @@ class Forum {
   }
 
   unFollowForum(followObj, user) {
-    return Db
+    return this.Db
       .tc_user_follow_forums
       .query()
       .where(followObj)
@@ -336,7 +331,7 @@ class Forum {
             .where('id', followObj.forum_id)
             .then(() => {
 
-              return Db
+              return this.Db
                 .tc_forums
                 .query()
                 .decrement('follow_count', 1)
@@ -352,12 +347,12 @@ class Forum {
   }
 
   addManager(obj) {
-    return Db
+    return this.Db
       .tc_forum_managers
       .query()
       .insert(obj)
       .then(manager => {
-        return Db
+        return this.Db
           .tc_users
           .query()
           .where({id: manager.user_id})
@@ -372,7 +367,7 @@ class Forum {
   }
 
   deleteManager(obj) {
-    return Db
+    return this.Db
       .tc_forum_managers
       .query()
       .delete()
@@ -380,7 +375,7 @@ class Forum {
   }
 
   deleteAnnounce(obj) {
-    return Db
+    return this.Db
       .tc_forum_announce_posts
       .query()
       .delete()
@@ -388,12 +383,12 @@ class Forum {
   }
 
   addBanUser(obj) {
-    return Db
+    return this.Db
       .tc_forum_ban_users
       .query()
       .insert(obj)
       .then(bannedUser => {
-        return Db
+        return this.Db
           .tc_users
           .query()
           .where({id: bannedUser.user_id})
@@ -407,7 +402,7 @@ class Forum {
       })
   }
   deleteBanUser(obj) {
-    return Db
+    return this.Db
       .tc_forum_ban_users
       .query()
       .delete()
@@ -415,7 +410,7 @@ class Forum {
   }
 
   validateCreate(obj) {
-    return Db
+    return this.Db
       .tc_forums
       .query()
       .where({title: obj.title})

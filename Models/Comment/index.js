@@ -1,12 +1,12 @@
 'use strict';
-const Db = require('trendclear-database').Models;
+const ModelClass = require('../../Util/Helper/Class');
 
 const Skill = require('../Skill');
 const Trendbox = require('../Trendbox');
 
-class Comment {
+class Comment extends ModelClass {
   submitComment(comment, user) {
-    return Db
+    return this.Db
       .tc_posts
       .query()
       .findById(comment.postId)
@@ -37,7 +37,7 @@ class Comment {
   }
 
   updateComment(comment, user) {
-    return Db
+    return this.Db
       .tc_comments
       .query()
       .patchAndFetchById(comment.id, {
@@ -46,7 +46,7 @@ class Comment {
   }
 
   updateSubComment(subComment, user) {
-    return Db
+    return this.Db
       .tc_sub_comments
       .query()
       .patchAndFetchById(subComment.id, {
@@ -55,7 +55,7 @@ class Comment {
   }
 
   submitSubComment(subComment, user) {
-    return Db
+    return this.Db
       .tc_comments
       .query()
       .findById(subComment.commentId)
@@ -85,13 +85,13 @@ class Comment {
   }
 
   likeComment (commentObj, user) {
-    return Db
+    return this.Db
       .tc_comments
       .query()
       .findById(commentObj.commentId)
       .then(comment => {
 
-        return Db
+        return this.Db
           .tc_likes
           .query()
           .where({ type: 'comment', type_id: comment.id, liker_id: user.id })
@@ -117,7 +117,7 @@ class Comment {
             }
           })
           .then((like) => {
-            const isModel = like instanceof Db.tc_likes;
+            const isModel = like instanceof this.Db.tc_likes;
             if (isModel) {
               return comment
                 .$query()
@@ -133,12 +133,12 @@ class Comment {
   }
 
   likeSubComment (commentObj, user) {
-    return Db
+    return this.Db
       .tc_sub_comments
       .query()
       .findById(commentObj.subCommentId)
       .then(subComment => {
-        return Db
+        return this.Db
           .tc_likes
           .query()
           .where({ type: 'sub_comment', type_id: subComment.id, liker_id: user.id })
@@ -164,7 +164,7 @@ class Comment {
             }
           })
           .then((like) => {
-            const isModel = like instanceof Db.tc_likes;
+            const isModel = like instanceof this.Db.tc_likes;
             if (isModel) {
               return subComment
                 .$query()

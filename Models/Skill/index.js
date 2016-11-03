@@ -2,16 +2,16 @@
  * Created by dobyeongsu on 2016. 5. 24..
  */
 'use strict';
-const Db = require('trendclear-database').Models;
+const ModelClass = require('../../Util/Helper/Class');
 
-class Skill {
+class Skill extends ModelClass {
   static nextLevelUpFomula(N) {
     return 1.2 * Math.pow(N, 3) - 15 * Math.pow(N, 2) + 100 * N - 140;
   }
 
   setUsingTime(user, type) {
     return () =>
-      Db
+      this.Db
         .tc_skills
         .query()
         .where('name', type)
