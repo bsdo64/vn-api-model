@@ -1,131 +1,116 @@
-'use strict';
 const ModelClass = require('../../Util/Helper/Class');
+const co = require('co');
 const Post = require('../Post');
 
 class Collection extends ModelClass {
   getUserCollections(user) {
     return user
       .$relatedQuery('collections')
-      .eager('[forums]')
+      .eager('[forums]');
   }
+
   getCollectionById(collectionId, user) {
     return user
       .$relatedQuery('collections')
       .where('id', collectionId)
       .eager('[forums]')
+      .first();
   }
+
   createCollection(collectionObj) {
     return this.Db
       .tc_collections
       .query()
-      .insert(collectionObj)
+      .insert(collectionObj);
   }
+
   updateCollection(collectionId, collectionObj) {
     return this.Db
       .tc_collections
       .query()
-      .patchAndFetchById(collectionId, collectionObj)
+      .patchAndFetchById(collectionId, collectionObj);
   }
+
   deleteCollection(collectionId, user) {
     return user
       .$relatedQuery('collections')
       .delete()
-      .where('id', collectionId)
+      .where('id', collectionId);
   }
 
   getForums(collectionId) {
-    return this.Db
-      .tc_collection_forums
-      .query()
-      .where('collection_id', collectionId)
-      .then(collectionForums => {
-        const collectionForumIds = collectionForums.map(value => value.forum_id);
-        return this.Db
-          .tc_forums
-          .query()
-          .whereIn('id', collectionForumIds)
-      })
+    return co.call(this, function* ModelHandler() {
+      const collectionForums = yield this.Db.tc_collection_forums.query().where('collection_id', collectionId);
+      const collectionForumIds = collectionForums.map(value => value.forum_id);
+
+      return yield this.Db.tc_forums.query().whereIn('id', collectionForumIds);
+    });
   }
 
   getCollectionPosts(props) {
-    const {collectionId, page, user} = props;
+    const { collectionId } = props;
 
-    return this.Db
-      .tc_collection_forums
-      .query()
-      .where('collection_id', collectionId)
-      .then(collectionForums => {
-        props.forumIds = collectionForums.map(value => value.forum_id);
+    return co.call(this, function* ModelHandler() {
+      const collectionForums = yield this.Db.tc_collection_forums.query().where('collection_id', collectionId);
+      props.forumIds = collectionForums.map(value => value.forum_id);
 
-        return Post.bestPostList(props)
-      })
+      return yield Post.bestPostList(props);
+    });
   }
 
   addForum(collectionId, forumId) {
-    return this.Db
-      .tc_collection_forums
-      .query()
-      .where({
-        forum_id: forumId,
-        collection_id: collectionId
-      })
-      .first()
-      .then(collection => {
-        if (collection) {
-          return null
-        } else {
-          return this.Db
-            .tc_collection_forums
-            .query()
-            .insert({
-              forum_id: forumId,
-              collection_id: collectionId
-            })
-        }
-      })
-      .then(collectionForum => {
+    return co.call(this, function* ModelHandler() {
+      let result;
+      const collection = yield this.Db.tc_collection_forums.query()
+        .where({
+          forum_id: forumId,
+          collection_id: collectionId,
+        })
+        .first();
+
+      if (!collection) {
+        const collectionForum = yield this.Db
+          .tc_collection_forums
+          .query()
+          .insert({
+            forum_id: forumId,
+            collection_id: collectionId,
+          });
+
         if (collectionForum) {
-          return this.Db
-            .tc_forums
-            .query()
-            .where('id', collectionForum.forum_id)
-            .first()
-            .then(forum => {
-              return forum
-                .$query()
-                .increment('subs_count', 1)
-                .then(affected => {
-                  if (affected) {
-                    return forum;
-                  } else {
-                    return null;
-                  }
-                })
-            })
-        } else {
-          return null
+          const forum = yield this.Db.tc_forums.query().where('id', collectionForum.forum_id).first();
+          const affected = forum.$query().increment('subs_count', 1);
+
+          if (affected) {
+            result = forum;
+          }
         }
-      })
+      }
+
+      return result;
+    });
   }
+
   removeForum(collectionId, forumId) {
-    return this.Db
-      .tc_collection_forums
-      .query()
-      .delete()
-      .where({
-        forum_id: forumId,
-        collection_id: collectionId
-      })
-      .then(result => {
-        return this.Db
+    return co.call(this, function* ModalHandler() {
+      const [result] = yield [
+        this.Db
+          .tc_collection_forums
+          .query()
+          .delete()
+          .where({
+            forum_id: forumId,
+            collection_id: collectionId,
+          }),
+        this.Db
           .tc_forums
           .query()
           .decrement('subs_count', 1)
-          .where({id: forumId})
-          .then(() => {
-            return result;
-          })
-      })
+          .where({ id: forumId }),
+      ];
+
+      return result;
+    });
   }
 }
 
