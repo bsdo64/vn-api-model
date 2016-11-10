@@ -1,8 +1,7 @@
-'use strict';
 const ModelClass = require('../../Util/Helper/Class');
+const co = require('co');
 const _ = require('lodash');
 
-const Promise = require('bluebird');
 const Trendbox = require('../Trendbox');
 
 function mergeByProp(array1, array2, prop) {
@@ -14,7 +13,7 @@ function mergeByProp(array1, array2, prop) {
         shared = true;
         break;
       }
-    if(!shared) arr3.push(array1[i])
+    if(!shared) arr3.push(array1[i]);
   }
   return arr3.concat(array2);
 }
@@ -22,30 +21,35 @@ function mergeByProp(array1, array2, prop) {
 class Forum extends ModelClass {
 
   createForum(forumObj, user) {
-    return this.Db
-      .tc_forums
-      .query()
-      .insert(forumObj)
-      .then(forum => {
-        return this.Db
-          .tc_forum_managers
-          .query()
-          .insert({
-            forum_id: forum.id,
-            user_id: user.id
-          })
-          .then(Trendbox.decrementPointT(user, 100))
-          .then(Trendbox.incrementExp(user, 30))
-          .then(() => this.followForum({forumId: forum.id}, user))
-          .then(() => forum)
-      })
+    return co.call(this, function* ModalHandler() {
+      const forum = yield this.Db
+        .tc_forums
+        .query()
+        .insert(forumObj);
+
+      yield this.Db
+        .tc_forum_managers
+        .query()
+        .insert({
+          forum_id: forum.id,
+          user_id: user.id
+        });
+
+      yield [
+        Trendbox.decrementPointT(user, 100)(),
+        Trendbox.incrementExp(user, 30)(),
+        this.followForum({forumId: forum.id}, user)
+      ];
+
+      return forum;
+    });
   }
 
-  patchForum(forumObj, user) {
+  patchForum(forumObj) {
     return this.Db
       .tc_forums
       .query()
-      .patchAndFetchById(forumObj.id, forumObj.body)
+      .patchAndFetchById(forumObj.id, forumObj.body);
   }
 
   getHotList (options) {
@@ -62,7 +66,7 @@ class Forum extends ModelClass {
     return this.Db
       .tc_posts
       .query()
-      .select(this.knex.raw(`MAX(created_at) as new_created_at`), 'forum_id')
+      .select(this.knex.raw('MAX(created_at) as new_created_at'), 'forum_id')
       .where({deleted: false})
       .groupBy('forum_id')
       .orderBy('new_created_at', 'desc')
@@ -70,7 +74,7 @@ class Forum extends ModelClass {
         options.whereIn = {
           type: 'id',
           data: forumIds.map(v => {
-            return v.forum_id
+            return v.forum_id;
           })
         };
 
@@ -79,8 +83,8 @@ class Forum extends ModelClass {
           data: forumIds
         };
 
-        return this.getList(options)
-      })
+        return this.getList(options);
+      });
   }
 
   getList(options) {
@@ -97,19 +101,19 @@ class Forum extends ModelClass {
     }
 
     if (options.whereIn) {
-      initQuery.whereIn(options.whereIn.type, options.whereIn.data)
+      initQuery.whereIn(options.whereIn.type, options.whereIn.data);
     }
 
     if (options.page) {
-      initQuery.page(options.page - 1, options.limit)
+      initQuery.page(options.page - 1, options.limit);
     }
 
     if (options.where) {
-      initQuery.where(options.where)
+      initQuery.where(options.where);
     }
 
     if (options.eager) {
-      initQuery.eager(options.eager)
+      initQuery.eager(options.eager);
     }
 
     return initQuery
@@ -133,7 +137,7 @@ class Forum extends ModelClass {
         }
 
         return hotForums;
-      })
+      });
   }
 
   getForumList(forumProperty, type = 'id') {
@@ -141,10 +145,7 @@ class Forum extends ModelClass {
       .tc_forums
       .query()
       .eager('[prefixes, creator.profile]')
-      .where(type, 'ilike', `%${forumProperty}%`)
-      .then(function (forums) {
-        return forums;
-      })
+      .where(type, 'ilike', `%${forumProperty}%`);
   }
 
   getForumInfo(forumProperty, type = 'id') {
@@ -174,12 +175,12 @@ class Forum extends ModelClass {
 
             return forum;
 
-          })
+          });
       })
 
       .catch(function (err) {
         throw new Error(err);
-      })
+      });
   }
 
   getForumPostList({forumId, page = 0, forumSearch, forumPrefix, order='new'}) {
@@ -241,7 +242,7 @@ class Forum extends ModelClass {
       .catch(function (err) {
 
         throw new Error(err);
-      })
+      });
   }
 
   getPrefix(forumId) {
@@ -252,21 +253,21 @@ class Forum extends ModelClass {
       .catch(function (err) {
 
         throw new Error(err);
-      })
+      });
   }
 
   addPrefix(prefixObj) {
     return this.Db
       .tc_forum_prefixes
       .query()
-      .insert(prefixObj)
+      .insert(prefixObj);
   }
 
   updatePrefix(prefixObj) {
     return this.Db
       .tc_forum_prefixes
       .query()
-      .patchAndFetchById(prefixObj.id, prefixObj)
+      .patchAndFetchById(prefixObj.id, prefixObj);
   }
 
   deletePrefix(prefixObj) {
@@ -275,14 +276,14 @@ class Forum extends ModelClass {
       .query()
       .patch({prefix_id: null})
       .where('prefix_id', '=', prefixObj.id)
-      .then(result => {
+      .then(() => {
 
         return this.Db
           .tc_forum_prefixes
           .query()
           .delete()
-          .where('id', '=', prefixObj.id)
-      })
+          .where('id', '=', prefixObj.id);
+      });
   }
 
   followForum(followObj, user) {
@@ -309,12 +310,12 @@ class Forum extends ModelClass {
                   } else {
                     return null;
                   }
-                })
-            })
+                });
+            });
         } else {
           return null;
         }
-      })
+      });
   }
 
   unFollowForum(followObj, user) {
@@ -337,13 +338,13 @@ class Forum extends ModelClass {
                 .decrement('follow_count', 1)
                 .where({id: followObj.forum_id})
                 .then(() => {
-                  return followObj
-                })
-            })
+                  return followObj;
+                });
+            });
         } else {
           return null;
         }
-      })
+      });
   }
 
   addManager(obj) {
@@ -361,9 +362,9 @@ class Forum extends ModelClass {
             return {
               manager,
               user: user
-            }
-          })
-      })
+            };
+          });
+      });
   }
 
   deleteManager(obj) {
@@ -371,7 +372,7 @@ class Forum extends ModelClass {
       .tc_forum_managers
       .query()
       .delete()
-      .where(obj)
+      .where(obj);
   }
 
   deleteAnnounce(obj) {
@@ -379,7 +380,7 @@ class Forum extends ModelClass {
       .tc_forum_announce_posts
       .query()
       .delete()
-      .where(obj)
+      .where(obj);
   }
 
   addBanUser(obj) {
@@ -397,23 +398,23 @@ class Forum extends ModelClass {
             return {
               bannedUser,
               user: user
-            }
-          })
-      })
+            };
+          });
+      });
   }
   deleteBanUser(obj) {
     return this.Db
       .tc_forum_ban_users
       .query()
       .delete()
-      .where(obj)
+      .where(obj);
   }
 
   validateCreate(obj) {
     return this.Db
       .tc_forums
       .query()
-      .where({title: obj.title})
+      .where({title: obj.title});
   }
 }
 
