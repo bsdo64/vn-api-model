@@ -79,7 +79,7 @@ class Collection extends ModelClass {
 
         if (collectionForum) {
           const forum = yield this.Db.tc_forums.query().where('id', collectionForum.forum_id).first();
-          const affected = forum.$query().increment('subs_count', 1);
+          const affected = yield forum.$query().increment('subs_count', 1);
 
           if (affected) {
             result = forum;

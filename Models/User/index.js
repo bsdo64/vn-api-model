@@ -254,24 +254,32 @@ class User extends ModelClass {
 
   checkEmailDup(email) {
     return co.call(this, function* ModelHandler() {
-      return yield this.Db
+      const result = yield this.Db
         .tc_users
         .query()
-        .where('email', 'ilike', `%${email}%`)
+        .where('email', 'ilike', `${email}`)
         .count('id as dup')
         .first();
+
+      result.dup = !!(1* result.dup);
+      return result;
+
     }).catch(function (err) {
       throw Error(err);
     });
   }
   checkNickDup(nick) {
     return co.call(this, function* ModelHandler() {
-      return yield this.Db
+      const result = yield this.Db
         .tc_users
         .query()
-        .where('nick', 'ilike', `%${nick}%`)
+        .where('nick', 'ilike', `${nick}`)
         .count('id as dup')
         .first();
+
+      result.dup = !!(1* result.dup);
+      return result;
+
     }).catch(function (err) {
       throw Error(err);
     });
