@@ -261,7 +261,7 @@ class User extends ModelClass {
         .count('id as dup')
         .first();
 
-      result.dup = !!(1* result.dup);
+      result.dup = !!(1 * result.dup);
       return result;
 
     }).catch(function (err) {
@@ -277,7 +277,7 @@ class User extends ModelClass {
         .count('id as dup')
         .first();
 
-      result.dup = !!(1* result.dup);
+      result.dup = !!(1 * result.dup);
       return result;
 
     }).catch(function (err) {
@@ -618,7 +618,7 @@ class User extends ModelClass {
     return user
       .$relatedQuery('profile')
       .update(profileObj)
-      .then((result) => {
+      .then(() => {
         return user.$relatedQuery('profile');
       })
       .catch(err => {
