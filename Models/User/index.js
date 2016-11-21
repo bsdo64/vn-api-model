@@ -751,10 +751,11 @@ class User extends ModelClass {
           .then(mail => mail.setMessage(mailOptions))
           .then(mail => mail.send());
 
-        result = {
-          result: 'ok',
-          message: mailResult.message
-        };
+        if (mailResult.accepted.length && !mailResult.rejected.length) {
+          result = 'ok';
+        } else {
+          result = null;
+        }
       }
 
       return result;
