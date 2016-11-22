@@ -32,7 +32,7 @@ class Comment extends ModelClass {
       .then(function (comment) {
         return comment
           .$query()
-          .eager('author.[profile, grade]')
+          .eager('author.[profile, trendbox, skills.skill.property]')
       })
   }
 
@@ -80,7 +80,7 @@ class Comment extends ModelClass {
       .then(function (subComment) {
         return subComment
           .$query()
-          .eager('author.[profile, grade]')
+          .eager('author.[profile, trendbox, skills.skill.property]')
       })
   }
 
