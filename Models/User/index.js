@@ -573,7 +573,11 @@ class User extends ModelClass {
         ImageCli.del('/uploaded/files/', {file: 'http://localhost:3000/image/uploaded/files/'+oldAvatarImg})
       ];
 
-      return numberOfAffectedRows;
+      if (numberOfAffectedRows) {
+        return user;
+      } else {
+        return false;
+      }
     });
   }
 
@@ -701,13 +705,22 @@ class User extends ModelClass {
   }
 
   readNoti(notiObj, user) {
-    return user
-      .$relatedQuery('notifications')
-      .update({
-        read: true,
-        read_at: new Date()
-      })
-      .where('id', notiObj.id);
+    return co.call(this, function* Handler() {
+      const updatedRow = yield user
+        .$relatedQuery('notifications')
+        .update({
+          read: true,
+          read_at: new Date()
+        })
+        .where('id', notiObj.id);
+
+      if (updatedRow) {
+        return user.id;
+      } else {
+        return updatedRow;
+      }
+
+    });
   }
 
   getPointAccount(user) {
