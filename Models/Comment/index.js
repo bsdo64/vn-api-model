@@ -1,39 +1,74 @@
-'use strict';
 const ModelClass = require('../../Util/Helper/Class');
-
+const co = require('co');
 const Skill = require('../Skill');
 const Trendbox = require('../Trendbox');
 
 class Comment extends ModelClass {
-  submitComment(comment, user) {
-    return this.Db
-      .tc_posts
-      .query()
-      .findById(comment.postId)
-      .then(function (post) {
-        return post
-          .$relatedQuery('comments')
-          .insert({
-            content: comment.content,
-            author_id: user.id,
-            created_at: new Date()
-          })
-          .then(function (comment) {
-            return post
-              .$query()
-              .increment('comment_count', 1)
-              .then(Skill.setUsingTime(user, 'write_comment'))
-              .then(Trendbox.incrementPointT(user, 10))
-              .then(Trendbox.incrementExp(user, 5))
-              .then(Trendbox.checkAndIncrementRep(user, post, 'comments', 5))
-              .then(() => comment)
-          })
-      })
-      .then(function (comment) {
-        return comment
-          .$query()
-          .eager('author.[profile, trendbox, skills.skill.property]')
-      })
+  submitComment(commentObj, user) {
+    return co.call(this, function* () {
+      const post = yield this.Db
+        .tc_posts
+        .query()
+        .findById(commentObj.postId);
+
+      const comment = yield post
+        .$relatedQuery('comments')
+        .insert({
+          content: commentObj.content,
+          author_id: user.id,
+          created_at: new Date()
+        });
+
+      const trade = yield this.Db
+        .tc_trades
+        .query()
+        .insert({
+          action: 'write_comment',
+          sender_type: 'venacle',
+          sender_id: null,
+          target_type: 'comment',
+          target_id: comment.id,
+          receiver_type: 'user',
+          receiver_id: user.id,
+          amount_r: 0,
+          amount_t: 10,
+          created_at: new Date()
+        });
+
+      const beforeAccount = yield this.Db
+        .tc_user_point_accounts
+        .query()
+        .where({
+          user_id: user.id
+        })
+        .orderBy('created_at', 'DESC')
+        .first();
+
+      const newAccount = yield this.Db
+        .tc_user_point_accounts
+        .query()
+        .insert({
+          type: 'deposit',
+          point_type: 'TP',
+          total_r: beforeAccount.total_r + trade.amount_r,
+          total_t: beforeAccount.total_t + trade.amount_t,
+          trade_id: trade.id,
+          user_id: user.id,
+          created_at: new Date()
+        });
+
+      yield [
+        post.$query().increment('comment_count', 1),
+        Skill.setUsingTime(user, 'write_comment')(),
+        Trendbox.resetPoint(user, newAccount)(),
+        Trendbox.incrementExp(user, 5)(),
+        Trendbox.checkAndIncrementRep(user, post, 'comments', 5)(),
+      ];
+
+      return yield comment
+        .$query()
+        .eager('author.[profile, trendbox, skills.skill.property]');
+    });
   }
 
   updateComment(comment, user) {
@@ -54,34 +89,71 @@ class Comment extends ModelClass {
       })
   }
 
-  submitSubComment(subComment, user) {
-    return this.Db
-      .tc_comments
-      .query()
-      .findById(subComment.commentId)
-      .then(function (comment) {
-        return comment
-          .$relatedQuery('subComments')
-          .insert({
-            content: subComment.content,
-            author_id: user.id,
-            created_at: new Date()
-          })
-          .then(function (subComment) {
-            return comment
-              .$query()
-              .increment('sub_comment_count', 1)
-              .then(Skill.setUsingTime(user, 'write_sub_comment'))
-              .then(Trendbox.incrementPointT(user, 10))
-              .then(Trendbox.incrementExp(user, 5))
-              .then(() => subComment)
-          })
-      })
-      .then(function (subComment) {
-        return subComment
-          .$query()
-          .eager('author.[profile, trendbox, skills.skill.property]')
-      })
+  submitSubComment(subCommentObj, user) {
+    return co.call(this, function* () {
+
+      const comment = yield this.Db
+        .tc_comments
+        .query()
+        .findById(subCommentObj.commentId);
+
+      const subComment = yield comment
+        .$relatedQuery('subComments')
+        .insert({
+          content: subCommentObj.content,
+          author_id: user.id,
+          created_at: new Date()
+        });
+
+      const trade = yield this.Db
+        .tc_trades
+        .query()
+        .insert({
+          action: 'write_sub_comment',
+          sender_type: 'venacle',
+          sender_id: null,
+          target_type: 'sub_comment',
+          target_id: subComment.id,
+          receiver_type: 'user',
+          receiver_id: user.id,
+          amount_r: 0,
+          amount_t: 10,
+          created_at: new Date()
+        });
+
+      const beforeAccount = yield this.Db
+        .tc_user_point_accounts
+        .query()
+        .where({
+          user_id: user.id
+        })
+        .orderBy('created_at', 'DESC')
+        .first();
+
+      const newAccount = yield this.Db
+        .tc_user_point_accounts
+        .query()
+        .insert({
+          type: 'deposit',
+          point_type: 'TP',
+          total_r: beforeAccount.total_r + trade.amount_r,
+          total_t: beforeAccount.total_t + trade.amount_t,
+          trade_id: trade.id,
+          user_id: user.id,
+          created_at: new Date()
+        });
+
+      yield comment
+        .$query()
+        .increment('sub_comment_count', 1)
+        .then(Skill.setUsingTime(user, 'write_sub_comment'))
+        .then(Trendbox.resetPoint(user, newAccount))
+        .then(Trendbox.incrementExp(user, 5));
+
+      return yield subComment
+        .$query()
+        .eager('author.[profile, trendbox, skills.skill.property]');
+    })
   }
 
   likeComment (commentObj, user) {

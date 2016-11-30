@@ -295,17 +295,19 @@ class Venalink extends ModelClass{
       .then(logItem => {
         return co.call(this, function* () {
           if (logItem) {
+            const newUserVenalink = yield this.Db
+              .tc_user_has_venalinks
+              .query()
+              .insert({
+                venalink_id: venalinkObj.venalink_id,
+                venalink_uid: shortId.generate(),
+                used_venalink_item_id: logItem.id,
+                request_at: venalinkObj.request_at,
+                user_id: user.id
+              });
+
             return yield [
-              this.Db
-                .tc_user_has_venalinks
-                .query()
-                .insert({
-                  venalink_id: venalinkObj.venalink_id,
-                  venalink_uid: shortId.generate(),
-                  used_venalink_item_id: logItem.id,
-                  request_at: venalinkObj.request_at,
-                  user_id: user.id
-                }),
+              newUserVenalink.$query().eager('[venalink.participants]'),
               this.Db
                 .tc_user_inventories
                 .query()
@@ -322,6 +324,82 @@ class Venalink extends ModelClass{
         console.log(err);
       })
 
+  }
+
+  checkPaybackRP({ userVenalinkId }, user) {
+    return co.call(this, function* () {
+      const userVenalink = yield this.Db
+        .tc_user_has_venalinks
+        .query()
+        .where({
+          id: userVenalinkId
+        })
+        .eager('[venalink, user]')
+        .first();
+
+      if (!userVenalink.has_payback_rp) {
+        let trade = yield this.Db
+          .tc_trades
+          .query()
+          .insert({
+            action: 'paybackVenalink',
+            sender_type: 'venacle',
+            sender_id: null,
+            target_type: 'user_venalink',
+            target_id: userVenalink.id,
+            receiver_type: 'user',
+            receiver_id: userVenalink.user_id,
+            amount_r: userVenalink.paid_r,
+            amount_t: 0,
+            created_at: new Date()
+          });
+
+        let beforeAccount = yield this.Db
+          .tc_user_point_accounts
+          .query()
+          .where({
+            user_id: userVenalink.user_id
+          })
+          .orderBy('created_at', 'DESC')
+          .first();
+
+        let newAccount = yield this.Db
+          .tc_user_point_accounts
+          .query()
+          .insert({
+            type: 'deposit',
+            point_type: 'RP',
+            total_r: beforeAccount.total_r + trade.amount_r,
+            total_t: beforeAccount.total_t + trade.amount_t,
+            trade_id: trade.id,
+            user_id: userVenalink.user_id,
+            created_at: new Date()
+          });
+
+        let refundedVenalink = yield this.Db
+          .tc_venalinks
+          .query()
+          .patch({
+            total_refunded_r: trade.amount_r
+          })
+          .where({
+            id: userVenalink.id
+          });
+
+        yield this.Db
+          .tc_user_trendboxes
+          .query()
+          .patch({
+            T: newAccount.total_t,
+            R: newAccount.total_r,
+          })
+          .where({user_id: userVenalink.user_id});
+
+
+        yield userVenalink.$query().patch({ has_payback_rp: true });
+      }
+
+    })
   }
 
   payParticipantR(venalinkUid, user) {

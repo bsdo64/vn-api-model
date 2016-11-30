@@ -10,6 +10,14 @@ class Trendbox extends ModelClass{
     return 1.2 * Math.pow(N, 3) - 15 * Math.pow(N, 2) + 100 * N - 140;
   }
 
+  resetPoint(user, newAccount) {
+    return () =>
+      user
+        .$relatedQuery('trendbox')
+        .patch({ T: newAccount.total_t, R: newAccount.total_r })
+        .where({ user_id: user.id })
+  }
+
   incrementPointT(user, point) {
     return () =>
       user

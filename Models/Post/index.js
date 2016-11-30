@@ -118,9 +118,47 @@ class Post extends ModelClass {
         }
       }
 
+      const trade = yield this.Db
+        .tc_trades
+        .query()
+        .insert({
+          action: 'write_post',
+          sender_type: 'venacle',
+          sender_id: null,
+          target_type: 'post',
+          target_id: post.id,
+          receiver_type: 'user',
+          receiver_id: user.id,
+          amount_r: 0,
+          amount_t: 10,
+          created_at: new Date()
+        });
+
+      const beforeAccount = yield this.Db
+        .tc_user_point_accounts
+        .query()
+        .where({
+          user_id: user.id
+        })
+        .orderBy('created_at', 'DESC')
+        .first();
+
+      const newAccount = yield this.Db
+        .tc_user_point_accounts
+        .query()
+        .insert({
+          type: 'deposit',
+          point_type: 'TP',
+          total_r: beforeAccount.total_r + trade.amount_r,
+          total_t: beforeAccount.total_t + trade.amount_t,
+          trade_id: trade.id,
+          user_id: user.id,
+          created_at: new Date()
+        });
+
       yield [
         Skill.setUsingTime(user, 'write_post')(),
-        Trendbox.incrementPointT(user, 10)(),
+        Trendbox.resetPoint(user, newAccount)(),
         Trendbox.incrementExp(user, 5)(),
         forum.$query().increment('post_count', 1),
       ];

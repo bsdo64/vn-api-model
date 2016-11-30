@@ -35,8 +35,46 @@ class Forum extends ModelClass {
           user_id: user.id
         });
 
+      const trade = yield this.Db
+        .tc_trades
+        .query()
+        .insert({
+          action: 'write_forum',
+          sender_type: 'user',
+          sender_id: user.id,
+          target_type: 'forum',
+          target_id: forum.id,
+          receiver_type: 'venacle',
+          receiver_id: null,
+          amount_r: 0,
+          amount_t: 100,
+          created_at: new Date()
+        });
+
+      const beforeAccount = yield this.Db
+        .tc_user_point_accounts
+        .query()
+        .where({
+          user_id: user.id
+        })
+        .orderBy('created_at', 'DESC')
+        .first();
+
+      const newAccount = yield this.Db
+        .tc_user_point_accounts
+        .query()
+        .insert({
+          type: 'withdraw',
+          point_type: 'TP',
+          total_r: beforeAccount.total_r - trade.amount_r,
+          total_t: beforeAccount.total_t - trade.amount_t,
+          trade_id: trade.id,
+          user_id: user.id,
+          created_at: new Date()
+        });
+
       yield [
-        Trendbox.decrementPointT(user, 100)(),
+        Trendbox.resetPoint(user, newAccount)(),
         Trendbox.incrementExp(user, 30)(),
         this.followForum({forumId: forum.id}, user)
       ];
