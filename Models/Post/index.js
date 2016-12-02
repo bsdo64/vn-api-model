@@ -195,7 +195,7 @@ class Post extends ModelClass {
     });
   }
 
-  findOneById(postId, commentPage = 0, user) {
+  findOneById({ postId, commentPage = 0, comment_order }, user) {
     const limit = 10;
     const offset = commentPage * limit;
 
@@ -225,6 +225,11 @@ class Post extends ModelClass {
       }.bind(this));
 
       const query = post.$relatedQuery('comments');
+
+      if (comment_order === 'hot') {
+        query.orderBy('like_count', 'desc');
+      }
+
       const [total, results] = yield [
         query.resultSize(),
         query

@@ -777,6 +777,14 @@ class User extends ModelClass {
     });
   }
 
+  getUserTrendbox(user) {
+    return this.Db
+      .tc_user_trendboxes
+      .query()
+      .where({ user_id: user.id })
+      .first()
+  }
+
   static setTokenWithRedisSession(user, sessionId) {
     return new Promise((resolve, reject) => {
       jsonwebtoken.sign(user, jwtConf.secret, jwtConf.option, (err, token) => {
