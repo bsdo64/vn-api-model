@@ -317,7 +317,8 @@ class Post extends ModelClass {
     });
   }
 
-  bestPostList({ page = 0, user, forumIds, order, listType } = props) {
+  bestPostList({ page = 0, user, forumIds, order, listType }) {
+    const now = new Date();
     let hotQuery;
     if (connectionType.client === 'mysql') {
       hotQuery = 'ROUND(LOG(GREATEST(like_count, 1)) + (UNIX_TIMESTAMP(tc_posts.created_at) - UNIX_TIMESTAMP())/45000, 7) as hot';
@@ -330,8 +331,9 @@ class Post extends ModelClass {
       .query()
       .select('*', this.knex.raw(hotQuery))
       .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks.participants]')
-      .filterEager('venalinks', builder => builder.where('terminate_at', '>', new Date()).first())
+      .filterEager('venalinks', builder => builder.where('terminate_at', '>', now).first())
       .where('deleted', false)
+      .where('created_at', '>', new Date(1900 + now.getYear(), now.getMonth() - 1))
       .page(page, 10);
 
     if (forumIds) {
