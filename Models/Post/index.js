@@ -1,7 +1,6 @@
 const ModelClass = require('../../Util/Helper/Class');
 
 const connectionType = require('trendclear-database').connectionConfig;
-const Promise = require('bluebird');
 const _ = require('lodash');
 const shortId = require('shortid');
 const moment = require('../../Util/moment');

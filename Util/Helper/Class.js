@@ -6,10 +6,29 @@ const knex = require('trendclear-database').knex;
 const Objection = require('trendclear-database').Objection;
 
 class ModelClass {
-  constructor() {
+  constructor(tableName) {
     this.Db = Db;
     this.knex = knex;
     this.Objection = Objection;
+    this.tableName = tableName;
+
+    if (this.tableName) {
+
+      console.log(this.tableName);
+      this.Q = this.Db[this.tableName].query();
+    }
+  }
+
+  findOne() {
+
+  }
+
+  findAll() {
+    return this.Q;
+  }
+
+  find() {
+
   }
 }
 

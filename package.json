@@ -22,7 +22,7 @@
     "shortid": "^2.2.6",
     "socket.io": "^1.4.6",
     "superagent": "^2.1.0",
-    "trendclear-database": "github:bsdo64/trendclear-database#vstore",
+    "trendclear-database": "git@github.com:bsdo64/trendclear-database.git",
     "ua-parser-js": "^0.7.10",
     "vn-api-client": "^1.0.1",
     "vn-config": "github:bsdo64/vn-config",
