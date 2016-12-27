@@ -8,7 +8,16 @@ const Promise = require('bluebird');
 const connectionType = require('trendclear-database').connectionConfig;
 const _ = require('lodash');
 
+/**
+ * Class representing a dot.
+ * @extends ModelClass
+ */
 class Search extends ModelClass {
+  
+  /**
+   * Get the dot's width.
+   * @return {Promise} The dot's width, in pixels.
+   */
   listForumByQuery (query, page = 0, order, user) {
     const limit = 10;
     const array = query.toLowerCase().split(' ');
@@ -20,7 +29,7 @@ class Search extends ModelClass {
       q
         .orWhere('title', 'ilike', '%' + array[index] + '%')
         .orWhere('sub_header', 'ilike', '%' + array[index] + '%')
-        .orWhere('description', 'ilike', '%' + array[index] + '%')
+        .orWhere('description', 'ilike', '%' + array[index] + '%');
 
     }
 
@@ -28,7 +37,7 @@ class Search extends ModelClass {
       .eager('[creator]')
       .orderBy('follow_count', 'desc')
       .orderBy('subs_count', 'desc')
-      .page(page, limit)
+      .page(page, limit);
   }
 
   listByQuery (query, page = 0, order, user) {
@@ -84,8 +93,8 @@ class Search extends ModelClass {
     for (let index in array) {
       q = q
         .orWhere('content', 'ilike', '%' + array[index] + '%')
-        .andWhere('deleted', false)
-  }
+        .andWhere('deleted', false);
+    }
 
     return q
       .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
@@ -106,12 +115,12 @@ class Search extends ModelClass {
               _.map(posts.results, function (value) {
                 value.liked = !!_.find(likeTable, {'postId': value.id});
               });
-              return posts
-            })
+              return posts;
+            });
         } else {
           return posts;
         }
-      })
+      });
   }
 
   findForumByQuery(query, page = 0) {
@@ -123,7 +132,7 @@ class Search extends ModelClass {
       .where('title', 'ilike', query + '%')
       .orWhere('description', 'ilike', '%' + query + '%')
       .page(page, limit)
-      .orderBy('title')
+      .orderBy('title');
   }
 
   findUsersByNick(searchObj, user, page = 0) {
@@ -199,7 +208,7 @@ class Search extends ModelClass {
           .query()
           .where('nick', 'ilike', searchObj.nick + '%')
           .page(page, limit)
-          .orderBy('nick')
+          .orderBy('nick');
     }
   }
 }

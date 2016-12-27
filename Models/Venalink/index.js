@@ -1,7 +1,6 @@
 /**
  * Created by dobyeongsu on 2016. 5. 24..
  */
-'use strict';
 const ModelClass = require('../../Util/Helper/Class');
 const Promise = require('bluebird');
 const shortId = require('shortid');
@@ -14,13 +13,13 @@ class Venalink extends ModelClass{
   findAll() {
     return co.call(this, function* () {
       return yield this.Db.tc_venalinks.query();
-    })
+    });
   }
 
   findActiveVenalink(venalinkObj) {
     return co.call(this, function* () {
       return yield this.Db.tc_venalinks.query().where('terminate_at', '>', new Date());
-    })
+    });
   }
 
   checkVenalinkItem(venalinkObj, user) {
@@ -184,14 +183,14 @@ class Venalink extends ModelClass{
       })
       .catch(err => {
         console.log(err);
-      })
+      });
   }
 
   activateVenalink() {
     return this.Db
       .tc_items
       .query()
-      .eager('[attribute]')
+      .eager('[attribute]');
   }
 
   activatedVenalinkList(user) {
@@ -199,7 +198,7 @@ class Venalink extends ModelClass{
       .tc_venalinks
       .query()
       .where({user_id: user.id})
-      .eager('[participants]')
+      .eager('[participants]');
   }
 
   participatedVenalinkList(user) {
@@ -207,7 +206,7 @@ class Venalink extends ModelClass{
       .tc_user_has_venalinks
       .query()
       .where({user_id: user.id})
-      .eager('[venalink.participants]')
+      .eager('[venalink.participants]');
   }
 
   checkVenalinkParticipate(venalinkObj, user) {
@@ -318,11 +317,11 @@ class Venalink extends ModelClass{
           } else {
             return yield Promise.resolve(false);
           }
-        })
+        });
       })
       .catch(err => {
         console.log(err);
-      })
+      });
 
   }
 
@@ -399,7 +398,7 @@ class Venalink extends ModelClass{
         yield userVenalink.$query().patch({ has_payback_rp: true });
       }
 
-    })
+    });
   }
 
   payParticipantR(venalinkUid, user) {
@@ -424,11 +423,11 @@ class Venalink extends ModelClass{
           return userVenalink.$query().patch({
             paid_r: userVenalink.paid_r + venalink.pay_per_click_r,
             count_visitor: userVenalink.count_visitor + 1,
-          })
+          });
         })
         .then(() => {
           return userVenalink.user;
-        })
+        });
     });
   }
 
