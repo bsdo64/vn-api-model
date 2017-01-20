@@ -198,7 +198,8 @@ class Venalink extends ModelClass{
       .tc_venalinks
       .query()
       .where({user_id: user.id})
-      .eager('[participants]');
+      .eager('[participants]')
+      .orderBy('active_at', 'DESC');
   }
 
   participatedVenalinkList(user) {
@@ -206,7 +207,8 @@ class Venalink extends ModelClass{
       .tc_user_has_venalinks
       .query()
       .where({user_id: user.id})
-      .eager('[venalink.participants]');
+      .eager('[venalink.participants]')
+      .orderBy('request_at', 'DESC');
   }
 
   checkVenalinkParticipate(venalinkObj, user) {
