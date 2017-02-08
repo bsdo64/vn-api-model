@@ -724,11 +724,19 @@ class User extends ModelClass {
   }
 
   getPointAccount(user) {
-    return this.Db
-      .tc_user_point_accounts
-      .query()
+    if (!user) {
+      return Promise.reject(user);
+    }
+
+    const q = this.Db.tc_user_point_accounts.query();
+
+    return q
       .eager('[trade]')
-      .where({user_id: user.id})
+      .where({
+        user_id: user.id,
+        point_type: 'TP'
+      })
+      .page(0, 20)
       .orderBy('created_at', 'DESC');
   }
 
@@ -782,7 +790,7 @@ class User extends ModelClass {
       .tc_user_trendboxes
       .query()
       .where({ user_id: user.id })
-      .first()
+      .first();
   }
 
   static setTokenWithRedisSession(user, sessionId) {

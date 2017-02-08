@@ -7,6 +7,23 @@ class Point extends ModelClass {
     super('tc_payments');
   }
 
+  getUserAccountList(options, user) {
+    if (!user) {
+      return Promise.reject(user);
+    }
+
+    const q = this.Db.tc_user_point_accounts.query();
+
+    if (options.page) {
+      q.page(options.page, options.limit);
+    }
+
+    return q
+      .eager('[trade]')
+      .where(options.where)
+      .orderBy(options.order.column, options.order.direction);
+  }
+
   getPaymentList(user) {
     return co.call(this, function* () {
       const Q = this.Db.tc_payments.query();
