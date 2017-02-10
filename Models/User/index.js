@@ -253,6 +253,9 @@ class User extends ModelClass {
   }
 
   checkEmailDup(email) {
+    // 1. tc_users 중에 이메일 하나 select
+    // 2. email의 겟수를 센다
+    // 3. result
     return co.call(this, function* ModelHandler() {
       const result = yield this.Db
         .tc_users

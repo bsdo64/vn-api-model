@@ -10,12 +10,6 @@ const Trendbox = require('../Trendbox');
 
 class Venalink extends ModelClass{
 
-  findAll() {
-    return co.call(this, function* () {
-      return yield this.Db.tc_venalinks.query();
-    });
-  }
-
   findActiveVenalink(venalinkObj) {
     return co.call(this, function* () {
       return yield this.Db.tc_venalinks.query().where('terminate_at', '>', new Date());
@@ -193,22 +187,13 @@ class Venalink extends ModelClass{
       .eager('[attribute]');
   }
 
-  activatedVenalinkList(user) {
-    return this.Db
-      .tc_venalinks
-      .query()
-      .where({user_id: user.id})
-      .eager('[participants]')
-      .orderBy('active_at', 'DESC');
-  }
+  participatedVenalinkList(options) {
+    const q = this.Db.tc_user_has_venalinks.query();
 
-  participatedVenalinkList(user) {
-    return this.Db
-      .tc_user_has_venalinks
-      .query()
-      .where({user_id: user.id})
-      .eager('[venalink.participants]')
-      .orderBy('request_at', 'DESC');
+    return q
+      .where(options.where)
+      .eager(options.eager)
+      .orderBy(options.column, options.direction);
   }
 
   checkVenalinkParticipate(venalinkObj, user) {

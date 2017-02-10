@@ -4,6 +4,19 @@ const _ = require('lodash');
 
 const Trendbox = require('../Trendbox');
 
+/**
+ * Merge Array1 and Array2 by property. return new array
+ *
+ * array1 : [ { id: 1, a: 1, b: 1 }, { id: 2, a: 1, b: 1 } ]
+ * array2 : [ { id: 1, c: 1 } ]
+ *
+ * array3 : [ { id: 1, a: 1, b: 1, c: 1 }, { id: 2, a: 1, b: 1 } ]
+ *
+ * @param array1
+ * @param array2
+ * @param prop
+ * @returns {Array.<*>}
+ */
 function mergeByProp(array1, array2, prop) {
   let arr3 = [];
   for(let i in array1){

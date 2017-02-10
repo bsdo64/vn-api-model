@@ -4,7 +4,7 @@ const request = require('superagent');
 
 class Point extends ModelClass {
   constructor() {
-    super('tc_payments');
+    super();
   }
 
   getUserAccountList(options, user) {
@@ -14,21 +14,21 @@ class Point extends ModelClass {
 
     const q = this.Db.tc_user_point_accounts.query();
 
-    if (options.page) {
-      q.page(options.page, options.limit);
-    }
-
     return q
       .eager('[trade]')
+      .page(options.page, options.limit)
       .where(options.where)
       .orderBy(options.order.column, options.order.direction);
   }
 
-  getPaymentList(user) {
+  getPaymentList(options) {
     return co.call(this, function* () {
       const Q = this.Db.tc_payments.query();
 
-      return yield Q.where({ user_id: user.id });
+      return yield Q
+        .page(options.page, options.limit)
+        .where(options.where)
+        .orderBy(options.order.column, options.order.direction);
     });
   }
 
