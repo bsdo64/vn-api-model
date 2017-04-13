@@ -852,9 +852,9 @@ jodid25519@^1.0.0:
   dependencies:
     jsbn "~0.1.0"
 
-joi@^10.3.1:
-  version "10.3.1"
-  resolved "https://registry.yarnpkg.com/joi/-/joi-10.3.1.tgz#2d22cab6eea650f02601144e51c35e2ba5ec497a"
+joi@^10.4.1:
+  version "10.4.1"
+  resolved "https://registry.yarnpkg.com/joi/-/joi-10.4.1.tgz#a2fca1f0d603d1b843f2c1e086b52461f6be1f36"
   dependencies:
     hoek "4.x.x"
     isemail "2.x.x"
@@ -1047,11 +1047,7 @@ minimist@~1.1.0:
   dependencies:
     minimist "0.0.8"
 
-moment@2.x.x:
-  version "2.17.1"
-  resolved "https://registry.yarnpkg.com/moment/-/moment-2.17.1.tgz#fed9506063f36b10f066c8b59a144d7faebe1d82"
-
-moment@^2.18.1:
+moment@2.x.x, moment@^2.18.1:
   version "2.18.1"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.18.1.tgz#c36193dd3ce1c2eed2adb7c802dbbc77a81b1c0f"
 
@@ -1115,9 +1111,9 @@ node-uuid@~1.4.0:
   version "1.4.7"
   resolved "https://registry.yarnpkg.com/node-uuid/-/node-uuid-1.4.7.tgz#6da5a17668c4b3dd59623bda11cf7fa4c1f60a6f"
 
-nodemailer@^3.1.8:
-  version "3.1.8"
-  resolved "https://registry.yarnpkg.com/nodemailer/-/nodemailer-3.1.8.tgz#febfaccb4bd273678473a309c6cb4b4a2f3c48e3"
+nodemailer@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/nodemailer/-/nodemailer-4.0.0.tgz#517a8f9a9972c6d1888c576bd5629bed41188d39"
 
 nopt@~3.0.6:
   version "3.0.6"
