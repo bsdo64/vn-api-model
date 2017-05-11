@@ -4,6 +4,7 @@
 'use strict';
 const ModelClass = require('../../Util/Helper/Class');
 
+const co = require('co');
 const Promise = require('bluebird');
 const connectionType = require('trendclear-database').connectionConfig;
 const _ = require('lodash');
@@ -40,7 +41,7 @@ class Search extends ModelClass {
       .page(page, limit);
   }
 
-  listByQuery (query, page = 0, order, user) {
+  listByQuery (query, page = 0, order, user, visitor) {
     const limit = 10;
     const array = query.toLowerCase().split(' ');
 
@@ -96,31 +97,42 @@ class Search extends ModelClass {
         .andWhere('deleted', false);
     }
 
-    return q
-      .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
-      .orderBy('created_at', 'DESC')
-      .andWhere('deleted', false)
-      .page(page, limit)
-      .then((posts) => {
-        if (user) {
-          return this.Db
-            .tc_posts
-            .query()
-            .select('tc_posts.id as postId', 'tc_likes.liker_id')
-            .join('tc_likes', 'tc_posts.id', this.knex.raw(`CAST(tc_likes.type_id as int)`))
-            .andWhere('tc_likes.type', 'post')
-            .andWhere('tc_likes.liker_id', user.id)
-            .then(function (likeTable) {
-
-              _.map(posts.results, function (value) {
-                value.liked = !!_.find(likeTable, {'postId': value.id});
-              });
-              return posts;
-            });
-        } else {
-          return posts;
-        }
+    return co.call(this, function* Handler() {
+      const newMap = array.map((v, i) => {
+        return {
+          query: v,
+          query_at: new Date(),
+          visitor_id: visitor.id
+        };
       });
+
+      yield this.Db
+        .tc_search_logs
+        .query()
+        .insert(newMap);
+
+      const posts = yield q
+        .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
+        .orderBy('created_at', 'DESC')
+        .andWhere('deleted', false)
+        .page(page, limit);
+
+      if (user) {
+        const likeTable = yield this.Db
+          .tc_posts
+          .query()
+          .select('tc_posts.id as postId', 'tc_likes.liker_id')
+          .join('tc_likes', 'tc_posts.id', this.knex.raw('CAST(tc_likes.type_id as int)'))
+          .andWhere('tc_likes.type', 'post')
+          .andWhere('tc_likes.liker_id', user.id);
+
+        _.map(posts.results, function (value) {
+          value.liked = !!_.find(likeTable, {'postId': value.id});
+        });
+      }
+
+      return posts;
+    });
   }
 
   findForumByQuery(query, page = 0) {
@@ -210,6 +222,24 @@ class Search extends ModelClass {
           .page(page, limit)
           .orderBy('nick');
     }
+  }
+
+  findQueryRank() {
+    const m = require('moment');
+
+    return co.call(this, function* () {
+      const queryList = yield this.Db
+        .tc_search_logs
+        .query()
+        .whereBetween('query_at', [m().subtract(1, 'days'), new Date()]);
+
+      const counting = _.countBy(queryList, 'query');
+      return _.take(_.orderBy(
+        Object.keys(counting).map(k => { return { query: k, query_count: counting[k] }; }),
+        ['query_count', 'query'],
+        ['desc', 'asc']
+      ), 10);
+    });
   }
 }
 
