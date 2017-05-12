@@ -440,7 +440,7 @@ class Venalink extends ModelClass{
     const log = {
       venalink_uid: venalinkUid,
       before_url: referer,
-      target_url: `/community?forumId=${post.forum_id}&postId=${post.id}`,
+      target_url: `/club/${post.forum_id}?postId=${post.id}`,
       type: 'post',
       type_id: post.id,
       visitor_uid: visitor.device.visitor_uid,
