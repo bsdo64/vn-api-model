@@ -27,25 +27,21 @@ class MailTransporter {
       .where({type: 'webmaster-gmail'})
       .then(siteValues => {
 
-        console.log(siteValues);
-
         self.oauth = siteValues.reduce((object, element) => {
           object[element.key] = element.value;
           return object;
         }, {});
 
-        console.log(self.oauth);
-
-        self.xoauth2Generator = xoauth2.createXOAuth2Generator(self.oauth);
-
         self.transporter = nodemailer.createTransport({
-          service: 'gmail',
+          service: 'Gmail',
           auth: {
-            xoauth2: self.xoauth2Generator
+            type: 'OAuth2',
+            clientId: self.oauth.clientId,
+            clientSecret: self.oauth.clientSecret,
           }
         });
 
-        self.xoauth2Generator.on("token", function(token){
+        self.transporter.on("token", function(token){
 
           Db
             .tc_site_values
@@ -70,15 +66,13 @@ class MailTransporter {
   }
 
   send() {
-    return new P((res, rej) => {
-      // send mail with defined transport object
-      this.transporter.sendMail(this.mailOptions, function(error, info){
-        if(error){
-          return rej(error);
-        }
-        res(info);
-      });
-    });
+    this.mailOptions.auth = {
+      user: this.oauth.user,
+      refreshToken: this.oauth.refreshToken,
+      accessToken: this.oauth.accessToken,
+    };
+
+    return this.transporter.sendMail(this.mailOptions);
   }
 }
 
