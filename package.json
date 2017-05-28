@@ -25,8 +25,7 @@
     "trendclear-database": "^0.1.2",
     "ua-parser-js": "^0.7.10",
     "vn-api-client": "^1.0.2",
-    "vn-config": "git+ssh://git@github.com/bsdo64/vn-config",
-    "xoauth2": "^1.2.0"
+    "vn-config": "git+ssh://git@github.com/bsdo64/vn-config"
   },
   "devDependencies": {
     "morgan": "^1.7.0"
