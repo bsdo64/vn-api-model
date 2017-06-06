@@ -126,13 +126,6 @@ bcrypt-pbkdf@^1.0.0:
   dependencies:
     tweetnacl "^0.14.3"
 
-bcrypt@^0.8.7:
-  version "0.8.7"
-  resolved "https://registry.yarnpkg.com/bcrypt/-/bcrypt-0.8.7.tgz#bc3875a9afd0a7b2cd231a6a7f218a5ce156b093"
-  dependencies:
-    bindings "1.2.1"
-    nan "2.3.5"
-
 bcrypt@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/bcrypt/-/bcrypt-1.0.2.tgz#d05fc5d223173e0e28ec381c0f00cc25ffaf2736"
@@ -1063,10 +1056,6 @@ mysql@^2.11.1:
     readable-stream "1.1.14"
     sqlstring "2.2.0"
 
-nan@2.3.5:
-  version "2.3.5"
-  resolved "https://registry.yarnpkg.com/nan/-/nan-2.3.5.tgz#822a0dc266290ce4cd3a12282ca3e7e364668a08"
-
 nan@2.5.0:
   version "2.5.0"
   resolved "https://registry.yarnpkg.com/nan/-/nan-2.5.0.tgz#aa8f1e34531d807e9e27755b234b4a6ec0c152a8"
@@ -1633,11 +1622,10 @@ tough-cookie@~2.3.0:
   dependencies:
     punycode "^1.4.1"
 
-trendclear-database@^0.1.2:
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/trendclear-database/-/trendclear-database-0.1.2.tgz#6021115582ee9cd6e9584887f84a0d2fc0284f89"
+trendclear-database@^0.1.4:
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/trendclear-database/-/trendclear-database-0.1.4.tgz#f5bfa281762819a5d897e2f7ea50516e887f9c1b"
   dependencies:
-    bcrypt "^0.8.7"
     co "^4.6.0"
     knex "^0.13.0"
     lodash "^4.13.1"

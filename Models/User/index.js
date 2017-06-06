@@ -471,6 +471,7 @@ class User extends ModelClass {
       const findUser = yield this.Db
         .tc_users
         .query()
+        .where(userObj)
         .eager('[' +
           'skills.skill.property, ' +
           'trendbox, ' +
@@ -482,9 +483,12 @@ class User extends ModelClass {
           'follow_forums.creator.profile,' +
           'forumCreated,' +
           'forumManaged,' +
-          'inventories.items.item.attribute' +
+          'inventories.items.item.attribute,' +
+          'latestSeen' +
           ']')
-        .where(userObj)
+        .modifyEager('latestSeen', builder => {
+          builder.limit(10).orderBy('tc_latest_seen.created_at', 'desc');
+        })
         .first();
 
 

@@ -500,6 +500,36 @@ class Post extends ModelClass {
     });
   }
 
+  addLatestSeen({ postId }, user) {
+    let latestSeens;
+
+    return co.call(this, function* () {
+      if (user) {
+        latestSeens = yield user
+          .$relatedQuery('latestSeen')
+          .where('post_id', postId)
+          .first();
+
+        if (latestSeens) {
+          yield this.Db
+            .tc_latest_seen
+            .query()
+            .patch({ created_at: new Date() })
+            .where({ post_id: postId, user_id: user.id });
+        } else {
+          yield user
+            .$relatedQuery('latestSeen')
+            .relate({
+              id: postId,
+              created_at: new Date()
+            });
+        }
+      }
+
+      return latestSeens;
+    });
+  }
+
   myWritePostList(page = 0, user) {
     const query = this.Db
       .tc_posts

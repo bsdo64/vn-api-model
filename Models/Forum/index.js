@@ -234,66 +234,84 @@ class Forum extends ModelClass {
       });
   }
 
-  getForumPostList({forumId, page = 0, forumSearch, forumPrefix, order='new'}) {
-    const query = this.Db
-      .tc_posts
-      .query()
-      .where('forum_id', '=', forumId)
-      .andWhere('deleted', false);
+  getForumPostList({user, forumId, page = 0, forumSearch, forumPrefix, order='new'}) {
+    return co.call(this, function* () {
+      const query = this.Db
+        .tc_posts
+        .query()
+        .where('forum_id', '=', forumId)
+        .andWhere('deleted', false);
 
-    if (forumSearch) {
-      query.where('title', 'ilike', '%' + forumSearch + '%');
-    }
+      if (forumSearch) {
+        query.where('title', 'ilike', '%' + forumSearch + '%');
+      }
 
-    if (forumPrefix) {
-      query.where('prefix_id', forumPrefix);
-    }
+      if (forumPrefix) {
+        query.where('prefix_id', forumPrefix);
+      }
 
-    if (!order) {
-      query
-        .orderBy('created_at', 'DESC')
-        .orderBy('id', 'desc');
-    }
-
-    switch (order) {
-      case 'new':
+      if (!order) {
         query
           .orderBy('created_at', 'DESC')
           .orderBy('id', 'desc');
-        break;
-      case 'hot':
-        query
-          .orderBy('like_count', 'DESC')
-          .orderBy('created_at', 'DESC')
-          .orderBy('id', 'desc');
-        break;
-      case 'm_view':
-        query
-          .orderBy('view_count', 'DESC')
-          .orderBy('created_at', 'DESC')
-          .orderBy('id', 'desc');
-        break;
-      case 'm_comment':
-        query
-          .orderBy('comment_count', 'DESC')
-          .orderBy('created_at', 'DESC')
-          .orderBy('id', 'desc');
-        break;
-      default:
-        query
-          .orderBy('like_count', 'DESC')
-          .orderBy('created_at', 'DESC')
-          .orderBy('id', 'desc');
-        break;
-    }
+      }
 
-    return query
-      .eager('[prefix, author.[icon,profile], forum]')
-      .page(page, 10)
-      .catch(function (err) {
+      switch (order) {
+        case 'new':
+          query
+            .orderBy('created_at', 'DESC')
+            .orderBy('id', 'desc');
+          break;
+        case 'hot':
+          query
+            .orderBy('like_count', 'DESC')
+            .orderBy('created_at', 'DESC')
+            .orderBy('id', 'desc');
+          break;
+        case 'm_view':
+          query
+            .orderBy('view_count', 'DESC')
+            .orderBy('created_at', 'DESC')
+            .orderBy('id', 'desc');
+          break;
+        case 'm_comment':
+          query
+            .orderBy('comment_count', 'DESC')
+            .orderBy('created_at', 'DESC')
+            .orderBy('id', 'desc');
+          break;
+        default:
+          query
+            .orderBy('like_count', 'DESC')
+            .orderBy('created_at', 'DESC')
+            .orderBy('id', 'desc');
+          break;
+      }
 
-        throw new Error(err);
-      });
+      const posts = yield query
+        .eager('[prefix, author.[icon,profile], forum]')
+        .page(page, 10)
+        .catch(function (err) {
+
+          throw new Error(err);
+        });
+
+      if (user) {
+        const likeTable = yield this.Db
+          .tc_posts
+          .query()
+          .select('tc_posts.id as postId', 'tc_likes.liker_id')
+          .join('tc_likes', 'tc_posts.id', this.knex.raw('CAST(tc_likes.type_id as int)'))
+          .andWhere('tc_likes.type', 'post')
+          .andWhere('tc_likes.liker_id', user.id);
+
+        _.map(posts.results, function (value) {
+          value.liked = !!_.find(likeTable, { 'postId': value.id });
+        });
+      }
+
+      return posts;
+    });
   }
 
   getPrefix(forumId) {
