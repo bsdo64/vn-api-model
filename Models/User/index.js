@@ -12,7 +12,6 @@ const UID = require('node-uuid');
 const uaParser = require('ua-parser-js');
 const bcrypt = require('bcrypt');
 const shortId = require('shortid');
-const Promise = require('bluebird');
 const jsonwebtoken = require('jsonwebtoken');
 
 const htmlTemplate = require('./template/email');
@@ -475,8 +474,6 @@ class User extends ModelClass {
         .eager('[' +
           'skills.skill.property, ' +
           'trendbox, ' +
-          'grade.gradeDef, ' +
-          'role, ' +
           'profile, ' +
           'icon.iconDef, ' +
           'collections.forums, ' +

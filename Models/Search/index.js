@@ -5,7 +5,6 @@
 const ModelClass = require('../../Util/Helper/Class');
 
 const co = require('co');
-const Promise = require('bluebird');
 const connectionType = require('trendclear-database').connectionConfig;
 const _ = require('lodash');
 
@@ -152,9 +151,9 @@ class Search extends ModelClass {
     const type = searchObj.type;
 
     switch (type) {
-      case 'manager':
-        return Promise
-          .join(
+      case 'manager': {
+        return co.call(this, function* Handler() {
+          const [managerList, banList] = yield [
             this.Db
               .tc_forum_managers
               .query()
@@ -166,27 +165,27 @@ class Search extends ModelClass {
               .query()
               .where({
                 forum_id: searchObj.forumId
-              }),
-            (managerList, banList) => {
-              const banUserIds = banList.map(item => item.user_id);
-              const forumManagerIds = managerList.map(item => item.user_id);
-              const array = [].concat(banUserIds, forumManagerIds, user.id);
+              })
+          ];
+            
+          const banUserIds = banList.map(item => item.user_id);
+          const forumManagerIds = managerList.map(item => item.user_id);
+          const array = [].concat(banUserIds, forumManagerIds, user.id);
 
-              return this.Db
-                .tc_users
-                .query()
-                .select('id', 'nick')
-                .where('nick', 'ilike', searchObj.nick + '%')
-                .whereNotIn('id', array)
-                .page(page, limit)
-                .orderBy('nick');
-            }
-          );
+          return this.Db
+            .tc_users
+            .query()
+            .select('id', 'nick')
+            .where('nick', 'ilike', searchObj.nick + '%')
+            .whereNotIn('id', array)
+            .page(page, limit)
+            .orderBy('nick');
+        });
+      }
 
-      case 'banList':
-
-        return Promise
-          .join(
+      case 'banList': {
+        return co.call(this, function* Handler() {
+          const [managerList, banList] = yield [
             this.Db
               .tc_forum_managers
               .query()
@@ -198,21 +197,22 @@ class Search extends ModelClass {
               .query()
               .where({
                 forum_id: searchObj.forumId
-              }),
-            (managerList, banList) => {
-              const banUserIds = banList.map(item => item.user_id);
-              const forumManagerIds = managerList.map(item => item.user_id);
-              const array = [].concat(banUserIds, forumManagerIds, user.id);
+              })
+          ];
+            
+          const banUserIds = banList.map(item => item.user_id);
+          const forumManagerIds = managerList.map(item => item.user_id);
+          const array = [].concat(banUserIds, forumManagerIds, user.id);
 
-              return this.Db
-                .tc_users
-                .query()
-                .where('nick', 'ilike', searchObj.nick + '%')
-                .whereNotIn('id', array)
-                .page(page, limit)
-                .orderBy('nick');
-            }
-          );
+          return this.Db
+            .tc_users
+            .query()
+            .where('nick', 'ilike', searchObj.nick + '%')
+            .whereNotIn('id', array)
+            .page(page, limit)
+            .orderBy('nick');
+        });
+      }
 
       default:
         return this.Db

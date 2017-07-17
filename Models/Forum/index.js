@@ -100,6 +100,7 @@ class Forum extends ModelClass {
     return this.Db
       .tc_forums
       .query()
+      .skipUndefined()
       .patchAndFetchById(forumObj.id, forumObj.body);
   }
 
@@ -487,4 +488,4 @@ class Forum extends ModelClass {
   }
 }
 
-module.exports = new Forum();
+module.exports = new Forum('tc_forums');

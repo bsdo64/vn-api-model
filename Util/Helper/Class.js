@@ -53,6 +53,10 @@ class ModelClass {
     return q;
   }
 
+  objection() {
+    return this.Q;
+  }
+
   findOne() {
 
   }

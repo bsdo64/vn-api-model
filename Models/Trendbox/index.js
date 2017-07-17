@@ -15,21 +15,21 @@ class Trendbox extends ModelClass{
       user
         .$relatedQuery('trendbox')
         .patch({ T: newAccount.total_t, R: newAccount.total_r })
-        .where({ user_id: user.id })
+        .where({ user_id: user.id });
   }
 
   incrementPointT(user, point) {
     return () =>
       user
         .$relatedQuery('trendbox')
-        .increment('T', point)
+        .increment('T', point);
   }
 
   incrementPointR(user, point) {
     return () =>
       user
         .$relatedQuery('trendbox')
-        .increment('R', point)
+        .increment('R', point);
   }
 
   incrementExp(user, point) {
@@ -45,7 +45,7 @@ class Trendbox extends ModelClass{
           if (currentExp >= nextExp) {
             return this.incrementLevel(user);
           }
-        })
+        });
   }
 
   incrementLevel(user, currentLevel) {
@@ -60,11 +60,11 @@ class Trendbox extends ModelClass{
           .patchAndFetchById(user.trendbox.id, {
             prev_exp: Math.round(Trendbox.nextLevelUpFomula(nextLevel)),
             next_exp: Math.round(Trendbox.nextLevelUpFomula(nextLevel + 1)),
-          })
+          });
       })
       .catch(err => {
         console.log(err);
-      })
+      });
   }
   
   checkAndIncrementRep(user, post, type, point) {
@@ -91,11 +91,11 @@ class Trendbox extends ModelClass{
                   .then((trendbox) =>
                     trendbox
                       .$query()
-                      .increment('reputation', 1).debug()
-                  )
+                      .increment('reputation', 1)
+                  );
               }
-            })
-        })
+            });
+        });
 
   }
 
@@ -119,7 +119,7 @@ class Trendbox extends ModelClass{
     return () =>
       user
         .$relatedQuery('trendbox')
-        .decrement('T', point)
+        .decrement('T', point);
   }
 
   decrementPointR() {

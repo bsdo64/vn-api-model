@@ -2,11 +2,8 @@
  * Created by dobyeongsu on 2016. 5. 24..
  */
 const ModelClass = require('../../Util/Helper/Class');
-const Promise = require('bluebird');
 const shortId = require('shortid');
 const co = require('co');
-
-const Trendbox = require('../Trendbox');
 
 class Venalink extends ModelClass{
 
@@ -455,4 +452,4 @@ class Venalink extends ModelClass{
   }
 }
 
-module.exports = new Venalink();
+module.exports = new Venalink('tc_venalinks');

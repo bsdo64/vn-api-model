@@ -1,5 +1,3 @@
-"use strict";
-
 const fs = require('fs');
 const path = require('path');
 
@@ -10,7 +8,8 @@ let newFiles = files
     return file !== 'index.js';
   })
   .map(function (file) {
-    return path.parse(file).name
+    // ['Club', 'Collection', 'Comment', ...]
+    return path.parse(file).name;
   });
 
 newFiles.forEach(function (element, index, array) {

@@ -1,6 +1,4 @@
-const P = require('bluebird');
 const nodemailer = require('nodemailer');
-
 
 class MailTransporter {
   constructor() {
@@ -58,7 +56,7 @@ class MailTransporter {
   }
 
   setMessage(data) {
-    return new P((res) => {
+    return new Promise((res) => {
       this.mailOptions = data;
 
       return res(this);
