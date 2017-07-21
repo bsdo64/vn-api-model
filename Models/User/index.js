@@ -8,7 +8,7 @@ const jwtConf = require('vn-config').api.jwt;
 const Mailer = require('../../Util/EmailTransporter');
 
 const co = require('co');
-const UID = require('node-uuid');
+const UID = require('uuid/v4');
 const uaParser = require('ua-parser-js');
 const bcrypt = require('bcrypt');
 const shortId = require('shortid');
@@ -153,7 +153,7 @@ class User extends ModelClass {
             .tc_visitors
             .query()
             .insert({
-              uuid: UID.v4(),
+              uuid: UID(),
               user_id: user.id
             });
 
@@ -190,7 +190,7 @@ class User extends ModelClass {
             .tc_visitors
             .query()
             .insert({
-              uuid: UID.v4(),
+              uuid: UID(),
               user_id: null
             });
 
@@ -227,7 +227,7 @@ class User extends ModelClass {
             .tc_visitors
             .query()
             .insert({
-              uuid: UID.v4(),
+              uuid: UID(),
               user_id: null
             });
 
