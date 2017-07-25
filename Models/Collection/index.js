@@ -115,9 +115,10 @@ class Collection extends ModelClass {
 
   getExploreCollection({ page = 1, limit = 10}) {
     return this.Db.tc_collections
-        .query()
-        .page(page - 1, limit)
-        .eager('[forums]');
+      .query()
+      .page(page - 1, limit)
+      .where('isPrivate', '=', false)
+      .eager('[forums, creator]');
   }
 }
 
