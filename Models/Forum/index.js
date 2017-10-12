@@ -210,7 +210,7 @@ class Forum extends ModelClass {
       .then((forum) => {
 
         if (!forum) {
-          throw Error('Forum not exist!');
+          throw 'Forum not exist!';
         }
 
         return this.Db
