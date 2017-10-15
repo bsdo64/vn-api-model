@@ -530,6 +530,42 @@ class Post extends ModelClass {
     });
   }
 
+  getFamousList() {
+
+    /**
+     *
+     SELECT
+     *, (like_count * 0.3	 + comment_count * 0.1 + view_count * 0.5) as score
+     FROM
+     public.tc_posts
+     WHERE
+     created_at > current_date - interval '90' day
+     ORDER BY
+     score DESC;
+     */
+    return co.call(this, function* ModelHandler() {
+      const now = new Date();
+
+      const list = yield this
+          .Db
+          .tc_posts
+          .query()
+          .select(
+              '*',
+              this.knex.raw('(like_count * 0.3 + comment_count * 0.1 + view_count * 0.5) as score'))
+          .where('created_at', '>', new Date(1900 + now.getYear(), now.getMonth() - 3))
+          .orderBy('score', 'desc')
+          .eager('[forum]')
+          .page(0, 10)
+
+
+      return list;
+    }).catch(e => {
+      console.log(e);
+      return null;
+    })
+  }
+
   myWritePostList(page = 0, user) {
     const query = this.Db
       .tc_posts

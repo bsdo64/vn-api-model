@@ -488,6 +488,19 @@ class User extends ModelClass {
         })
         .first();
 
+      if (findUser) {
+        const likeTable = yield this.Db
+            .tc_posts
+            .query()
+            .select('tc_posts.id as postId', 'tc_likes.liker_id')
+            .join('tc_likes', 'tc_posts.id', this.knex.raw('CAST(tc_likes.type_id as int)'))
+            .andWhere('tc_likes.type', 'post')
+            .andWhere('tc_likes.liker_id', user.id);
+
+        _.map(findUser.latestSeen, function (value) {
+          value.liked = !!_.find(likeTable, { 'postId': value.id });
+        });
+      }
 
       `select "tc_user_notifications".*, "tc_posts"."id", "tc_posts"."title"
         from "tc_user_notifications"
