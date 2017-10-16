@@ -32,10 +32,46 @@ class Collection extends ModelClass {
   }
 
   deleteCollection(collectionId, user) {
-    return user
-      .$relatedQuery('collections')
-      .delete()
-      .where('id', collectionId);
+    return co.call(this, function* ModelHandler() {
+      // Unrelate collection - user
+      yield user
+        .$relatedQuery('collections')
+        .unrelate()
+        .where('id', collectionId);
+
+      // Get collection - forum Ids
+      const getForumIds = yield this.Db
+        .tc_collection_forums
+        .query()
+        .select('forum_id')
+        .where('collection_id', '=', collectionId);
+      const forumIds = getForumIds.map(v => v.forum_id);
+
+      // Delete unusing collection - forum
+      const deleteCollectionNumbers = yield this.Db
+        .tc_collection_forums
+        .query()
+        .delete()
+        .where('collection_id', '=', collectionId);
+
+      // Delete the collection
+      yield this.Db
+        .tc_collections
+        .query()
+        .delete()
+        .where('id', '=', collectionId);
+
+      // down club subs counts
+      yield this.Db
+        .tc_collections
+        .query()
+        .delete()
+        .where('id', '=', collectionId);
+
+      yield this.Db.tc_forums.query().decrement('subs_count', 1).whereIn('id', forumIds);
+
+      return deleteCollectionNumbers;
+    });
   }
 
   getForums(collectionId) {
