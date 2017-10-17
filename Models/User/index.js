@@ -486,6 +486,7 @@ class User extends ModelClass {
         .modifyEager('latestSeen', builder => {
           builder.limit(10).orderBy('tc_latest_seen.created_at', 'desc');
         })
+        .filterEager('follow_forums.creator', builder => builder.select(['id', 'nick', 'uid']))
         .first();
 
       if (findUser) {

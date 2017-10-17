@@ -35,6 +35,7 @@ class Search extends ModelClass {
 
     return q
       .eager('[creator]')
+      .filterEager('creator', builder => builder.select(['id', 'nick', 'uid']))
       .orderBy('follow_count', 'desc')
       .orderBy('subs_count', 'desc')
       .page(page, limit);
@@ -112,6 +113,7 @@ class Search extends ModelClass {
 
       const posts = yield q
         .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags]')
+        .filterEager('author', builder => builder.select(['id', 'nick', 'uid']))
         .orderBy('created_at', 'DESC')
         .andWhere('deleted', false)
         .page(page, limit);

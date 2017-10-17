@@ -197,6 +197,7 @@ class Forum extends ModelClass {
       .tc_forums
       .query()
       .eager('[prefixes, creator.profile]')
+      .filterEager('creator', builder => builder.select(['id', 'nick', 'uid']))
       .where(type, 'ilike', `%${forumProperty}%`);
   }
 
@@ -205,6 +206,10 @@ class Forum extends ModelClass {
       .tc_forums
       .query()
       .eager('[prefixes, creator.profile, announces.author, managers, bans]')
+      .filterEager('announces.author', builder => builder.select(['tc_users.id', 'nick', 'uid']))
+      .filterEager('creator', builder => builder.select(['tc_users.id', 'nick', 'uid']))
+      .filterEager('managers', builder => builder.select(['tc_users.id', 'nick', 'uid']))
+      .filterEager('bans', builder => builder.select(['tc_users.id', 'nick', 'uid']))
       .where({[type]: forumProperty})
       .first()
       .then((forum) => {
@@ -289,29 +294,32 @@ class Forum extends ModelClass {
           break;
       }
 
-      const posts = yield query
-        .eager('[prefix, author.[icon,profile], forum]')
-        .page(page, 10)
-        .catch(function (err) {
+      try {
+        const posts = yield query
+          .eager('[prefix, author.[icon,profile], forum]')
+          .filterEager('author', builder => builder.select(['id', 'nick', 'uid']))
+          .page(page, 10);
 
-          throw new Error(err);
-        });
+        if (user) {
+          const likeTable = yield this.Db
+            .tc_posts
+            .query()
+            .select('tc_posts.id as postId', 'tc_likes.liker_id')
+            .join('tc_likes', 'tc_posts.id', this.knex.raw('CAST(tc_likes.type_id as int)'))
+            .andWhere('tc_likes.type', 'post')
+            .andWhere('tc_likes.liker_id', user.id);
 
-      if (user) {
-        const likeTable = yield this.Db
-          .tc_posts
-          .query()
-          .select('tc_posts.id as postId', 'tc_likes.liker_id')
-          .join('tc_likes', 'tc_posts.id', this.knex.raw('CAST(tc_likes.type_id as int)'))
-          .andWhere('tc_likes.type', 'post')
-          .andWhere('tc_likes.liker_id', user.id);
+          _.map(posts.results, function (value) {
+            value.liked = !!_.find(likeTable, { 'postId': value.id });
+          });
+        }
 
-        _.map(posts.results, function (value) {
-          value.liked = !!_.find(likeTable, { 'postId': value.id });
-        });
+        return posts;
+
+      } catch(err) {
+        throw new Error(err);
       }
 
-      return posts;
     });
   }
 

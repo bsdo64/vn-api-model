@@ -204,6 +204,7 @@ class Post extends ModelClass {
         .query()
         .eager('[likes, prefix, author.[icon.iconDef, profile, trendbox], forum, tags, venalinks.participants]')
         .filterEager('venalinks', builder => builder.where('terminate_at', '>', new Date()).first())
+        .filterEager('author', builder => builder.select(['id', 'nick', 'uid']))
         .where('id', '=', postId)
         .first();
 
@@ -235,6 +236,8 @@ class Post extends ModelClass {
           .offset(offset)
           .limit(limit)
           .eager('[subComments.author.[icon.iconDef, profile], author.[icon.iconDef, profile]]')
+          .filterEager('subComments.author', builder => builder.select(['id', 'nick', 'uid']))
+          .filterEager('author', builder => builder.select(['id', 'nick', 'uid']))
           .traverse(this.Db.tc_comments, traverseFn)
           .orderBy('created_at', 'desc')
           .orderBy('id', 'desc'),
@@ -259,7 +262,7 @@ class Post extends ModelClass {
             .join('tc_likes', 'tc_comments.id', this.knex.raw('CAST(tc_likes.type_id as int)'))
             .andWhere('tc_likes.type', 'comment')
             .andWhere('tc_likes.liker_id', user.id),
-          ];
+        ];
 
         post.liked = !!_.find(postLikeTable, { postId: post.id });
         _.map(results, (value) => {
@@ -294,6 +297,7 @@ class Post extends ModelClass {
         .andWhere('deleted', false)
         .orderBy('created_at', 'DESC')
         .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks.participants]')
+        .filterEager('author', builder => builder.select(['id', 'nick', 'uid']))
         .filterEager('venalinks', builder => builder.where('terminate_at', '>', new Date()).first());
 
       if (user) {
@@ -330,6 +334,7 @@ class Post extends ModelClass {
       .query()
       .select('*', this.knex.raw(hotQuery))
       .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks.participants]')
+      .filterEager('author', builder => builder.select(['id', 'nick', 'uid']))
       .filterEager('venalinks', builder => builder.where('terminate_at', '>', now).first())
       .where('deleted', false)
       .where('created_at', '>', new Date(1900 + now.getYear(), now.getMonth() - 1))
@@ -547,23 +552,23 @@ class Post extends ModelClass {
       const now = new Date();
 
       const list = yield this
-          .Db
-          .tc_posts
-          .query()
-          .select(
-              '*',
-              this.knex.raw('(like_count * 0.3 + comment_count * 0.1 + view_count * 0.5) as score'))
-          .where('created_at', '>', new Date(1900 + now.getYear(), now.getMonth() - 3))
-          .orderBy('score', 'desc')
-          .eager('[forum]')
-          .page(0, 10)
-
+        .Db
+        .tc_posts
+        .query()
+        .select(
+          '*',
+          this.knex.raw('(like_count * 0.3 + comment_count * 0.1 + view_count * 0.5) as score'))
+        .where('created_at', '>', new Date(1900 + now.getYear(), now.getMonth() - 3))
+        .orderBy('score', 'desc')
+        .eager('[forum]')
+        .page(0, 10);
 
       return list;
     }).catch(e => {
       console.log(e);
+
       return null;
-    })
+    });
   }
 
   myWritePostList(page = 0, user) {
@@ -575,6 +580,7 @@ class Post extends ModelClass {
       .page(page, 10)
       .orderBy('created_at', 'DESC')
       .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks.participants]')
+      .filterEager('author', builder => builder.select(['id', 'nick', 'uid']))
       .filterEager('venalinks', builder => builder.where('terminate_at', '>', new Date()).first());
 
     return co.call(this, function* ModelHandler() {
@@ -622,6 +628,7 @@ class Post extends ModelClass {
         .page(page, 10)
         .orderBy('created_at', 'DESC')
         .eager('[prefix, author.[icon.iconDef,profile,trendbox], forum, tags, venalinks.participants]')
+        .filterEager('author', builder => builder.select(['id', 'nick', 'uid']))
         .filterEager('venalinks', builder => builder.where('terminate_at', '>', new Date()).first());
 
       if (user) {

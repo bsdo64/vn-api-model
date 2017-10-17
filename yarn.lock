@@ -1559,9 +1559,9 @@ tough-cookie@~2.3.0:
   dependencies:
     punycode "^1.4.1"
 
-trendclear-database@^0.1.6:
-  version "0.1.6"
-  resolved "https://registry.yarnpkg.com/trendclear-database/-/trendclear-database-0.1.6.tgz#429f8ebea47d59a34074b84f34bcae1f0c99a53c"
+trendclear-database@0.1.8:
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/trendclear-database/-/trendclear-database-0.1.8.tgz#0a1eef3cda04c555600f2f0e6f8766d01bc36f4f"
   dependencies:
     co "^4.6.0"
     knex "^0.13.0"

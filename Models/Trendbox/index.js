@@ -72,6 +72,7 @@ class Trendbox extends ModelClass{
     return () =>
       post
         .$relatedQuery('author')
+        .filterEager('author', builder => builder.select(['id', 'nick', 'uid']))
         .first()
         .then(author => {
           return this.Db

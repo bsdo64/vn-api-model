@@ -154,7 +154,9 @@ class Collection extends ModelClass {
       .query()
       .page(page - 1, limit)
       .where('isPrivate', '=', false)
-      .eager('[forums, creator]');
+      .eager('[forums, creator]')
+      .filterEager('creator', builder => builder.select(['id', 'nick', 'uid']));
+
   }
 }
 

@@ -67,7 +67,8 @@ class Comment extends ModelClass {
 
       return yield comment
         .$query()
-        .eager('author.[profile, trendbox, skills.skill.property]');
+        .eager('author.[profile, trendbox, skills.skill.property]')
+        .filterEager('author', builder => builder.select(['id', 'nick', 'uid']));
     });
   }
 
@@ -152,7 +153,8 @@ class Comment extends ModelClass {
 
       return yield subComment
         .$query()
-        .eager('author.[profile, trendbox, skills.skill.property]');
+        .eager('author.[profile, trendbox, skills.skill.property]')
+        .filterEager('author', builder => builder.select(['id', 'nick', 'uid']));
     })
   }
 
