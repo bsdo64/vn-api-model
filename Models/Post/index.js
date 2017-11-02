@@ -559,6 +559,7 @@ class Post extends ModelClass {
           '*',
           this.knex.raw('(like_count * 0.3 + comment_count * 0.1 + view_count * 0.5) as score'))
         .where('created_at', '>', new Date(1900 + now.getYear(), now.getMonth() - 3))
+        .andWhere('deleted', '=', false)
         .orderBy('score', 'desc')
         .eager('[forum]')
         .page(0, 10);

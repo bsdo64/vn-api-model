@@ -484,19 +484,19 @@ class User extends ModelClass {
           'latestSeen' +
           ']')
         .modifyEager('latestSeen', builder => {
-          builder.limit(10).orderBy('tc_latest_seen.created_at', 'desc');
+          builder.limit(10).where('tc_posts.deleted', '=', false).orderBy('tc_latest_seen.created_at', 'desc');
         })
         .filterEager('follow_forums.creator', builder => builder.select(['id', 'nick', 'uid']))
         .first();
 
       if (findUser) {
         const likeTable = yield this.Db
-            .tc_posts
-            .query()
-            .select('tc_posts.id as postId', 'tc_likes.liker_id')
-            .join('tc_likes', 'tc_posts.id', this.knex.raw('CAST(tc_likes.type_id as int)'))
-            .andWhere('tc_likes.type', 'post')
-            .andWhere('tc_likes.liker_id', user.id);
+          .tc_posts
+          .query()
+          .select('tc_posts.id as postId', 'tc_likes.liker_id')
+          .join('tc_likes', 'tc_posts.id', this.knex.raw('CAST(tc_likes.type_id as int)'))
+          .andWhere('tc_likes.type', 'post')
+          .andWhere('tc_likes.liker_id', user.id);
 
         _.map(findUser.latestSeen, function (value) {
           value.liked = !!_.find(likeTable, { 'postId': value.id });
