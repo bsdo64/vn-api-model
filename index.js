@@ -4,4 +4,4 @@
 
 module.exports = require('./Models');
 
-module.exports.Db = require('trendclear-database');
+module.exports.Db = require('trendclear-database').Models;
