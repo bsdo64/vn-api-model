@@ -501,20 +501,20 @@ class User extends ModelClass {
         _.map(findUser.latestSeen, function (value) {
           value.liked = !!_.find(likeTable, { 'postId': value.id });
         });
-      }
 
-      `select "tc_user_notifications".*, "tc_posts"."id", "tc_posts"."title"
+        `select "tc_user_notifications".*, "tc_posts"."id", "tc_posts"."title"
         from "tc_user_notifications"
         LEFT JOIN "tc_posts" ON "tc_posts"."id" = "tc_user_notifications"."target_id"
         WHERE "tc_user_notifications"."user_id" = (2)	;`;
 
-      findUser.notifications = yield findUser
-        .$relatedQuery('notifications')
-        .select('*', 'tc_user_notifications.id as id', 'tc_posts.id as post_id')
-        .join('tc_posts', 'tc_posts.id', 'tc_user_notifications.target_id')
-        .offset(0)
-        .limit(10)
-        .orderBy('receive_at', 'DESC');
+        findUser.notifications = yield findUser
+            .$relatedQuery('notifications')
+            .select('*', 'tc_user_notifications.id as id', 'tc_posts.id as post_id')
+            .join('tc_posts', 'tc_posts.id', 'tc_user_notifications.target_id')
+            .offset(0)
+            .limit(10)
+            .orderBy('receive_at', 'DESC');
+      }
 
       return findUser;
     })
